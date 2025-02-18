@@ -1,6 +1,6 @@
 #ifndef CMDBUILD_H
 #define CMDBUILD_H
-
+//数据包的构建和解析
 #include <stdint.h>
 #include <QString>
 #include <QByteArray>
@@ -31,7 +31,7 @@ typedef struct {
     uint8_t devID;//设备ID
     uint32_t time;//时间
     uint32_t packetLength;//数据包长度(包头+数据)
-} CmdPacketHeader;//命令数据包头
+} CmdPacketHeader;//命令数据包头结构体
 
 typedef struct {
     uint8_t workMode;//工作模式
@@ -39,7 +39,7 @@ typedef struct {
     uint8_t batPercent;//电池百分比
     float batVol;//电池电压
     float temperature;//板卡温度
-} devPhysicsParameter;//设备物理参数
+} devPhysicsParameter;//设备物理参数结构体
 
 typedef struct {
     double longitude;//经度
@@ -51,7 +51,7 @@ typedef struct {
     float antennaDistance;//天线距离
     uint8_t positionType;//位置类型
     uint8_t GNSS_QualIndicator;//GNSS质量指标
-} satelliteInfo;//卫星信息
+} satelliteInfo;//卫星信息结构体
 
 typedef struct {
     uint8_t collectionState;//采集状态
@@ -62,7 +62,7 @@ typedef struct {
     int32_t freeSpace;//可用存储空间
     float batVol;//电池电压
     float temperature;//板卡温度
-} devState;//设备状态
+} devState;//设备状态结构体
 
 typedef struct {
     //版本号为点分十进制,w1.w2.w3.w4
@@ -70,7 +70,31 @@ typedef struct {
     uint16_t w2;
     uint16_t w3;
     uint16_t w4;
-} softwareVersion;//软件版本
+} softwareVersion;//软件版本结构体
+
+typedef struct {
+    uint8_t sampleFreq;//采样频率
+    uint8_t sateType;//卫星类型(暂时不起作用)
+    //0~7通道量程类型
+    uint8_t rangeTypeChannel0;
+    uint8_t rangeTypeChannel1;
+    uint8_t rangeTypeChannel2;
+    uint8_t rangeTypeChannel3;
+    uint8_t rangeTypeChannel4;
+    uint8_t rangeTypeChannel5;
+    uint8_t rangeTypeChannel6;
+    uint8_t rangeTypeChannel7;
+    //0~7通道信号类型
+    uint8_t signalTypeChannel0;
+    uint8_t signalTypeChannel1;
+    uint8_t signalTypeChannel2;
+    uint8_t signalTypeChannel3;
+    uint8_t signalTypeChannel4;
+    uint8_t signalTypeChannel5;
+    uint8_t signalTypeChannel6;
+    uint8_t signalTypeChannel7;
+} devWorkParameter;//设备工作参数结构体
+
 #pragma pack(pop)
 
 QString getTimestamp();

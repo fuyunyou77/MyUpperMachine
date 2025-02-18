@@ -9,13 +9,12 @@ Widget::Widget(QWidget *parent)
     , yellowLit(":/icon/yellow_light.png")
 {
     ui->setupUi(this);
-    this->setWindowTitle("武汉兆辰");
 
     socket = new QTcpSocket;//创建Socket对象
 
     //按钮上放上图片
-    ui->devStateLitLabel->setPixmap(greyLit.scaled(32,32));
-    ui->netStateLitLabel ->setPixmap(greyLit.scaled(32,32));
+    ui->devStateLitLabel->setPixmap(greyLit.scaled(60,60));
+    ui->netStateLitLabel ->setPixmap(greyLit.scaled(60,60));
 
     //连接信号与槽
     connect(ui->normalModeBtn,&QPushButton::clicked,this,&Widget::on_normalModeBtn_clicked,Qt::UniqueConnection);//开启正常模式按钮
@@ -41,7 +40,6 @@ Widget::~Widget()
 
 void Widget::on_normalModeBtn_clicked()
 {
-
 
     if(socket->state()==QAbstractSocket::UnconnectedState)
     {
@@ -160,8 +158,8 @@ void Widget::on_disconnectBtn_clicked()
 
 void Widget::on_serverConnectted()
 {
-    ui->netStateLitLabel ->setPixmap(yellowLit.scaled(32,32));//设置指示灯为黄色常亮,表示连接
-    ui->devStateLitLabel->setPixmap(greenLit.scaled(32,32));//初始连接板卡时，板卡一定为正常模式，设备状态显示绿灯
+    ui->netStateLitLabel ->setPixmap(yellowLit.scaled(60,60));//设置指示灯为黄色常亮,表示连接
+    ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//初始连接板卡时，板卡一定为正常模式，设备状态显示绿灯
     //TODO:TCP连接成功后自动发起一次获取设备物理参数请求,获取其设备状态用于其他各项信息显示
 
 
@@ -175,18 +173,18 @@ void Widget::on_serverConnectted()
 
     //在日志栏打印信息
     QString logText=getTimestamp();
-    logText.append("下位机连接成功!");
+    logText.append("下位机连接成功!------>["+ui->IPLineEdit->text()+":"+ui->PortLineEdit->text()+"]");
     ui->logTextEdit->append(logText);
 }
 
 void Widget::on_serverDisconnnectted()
 {
-    ui->netStateLitLabel ->setPixmap(greyLit.scaled(32,32));//设置网络状态指示灯为灰色,表示断开连接
-    ui->devStateLitLabel ->setPixmap(greyLit.scaled(32,32));//设置设备状态指示灯为灰色,表示断开连接
+    ui->netStateLitLabel ->setPixmap(greyLit.scaled(60,60));//设置网络状态指示灯为灰色,表示断开连接
+    ui->devStateLitLabel ->setPixmap(greyLit.scaled(60,60));//设置设备状态指示灯为灰色,表示断开连接
 
     //打印日志
     QString logText=getTimestamp();
-    logText.append("下位机连接已断开!");
+    logText.append("下位机连接断开!--\\\\-->["+ui->IPLineEdit->text()+":"+ui->PortLineEdit->text()+"]");
     ui->logTextEdit->append(logText);
 }
 
@@ -199,19 +197,19 @@ void Widget::on_serverConnectError()
     ui->logTextEdit->append(getTimestamp()+"socketError:"+errorDescription);
 }
 
-
 void Widget::on_socketReadyRead()
 {
     QByteArray response = socket->readAll();
 
+    //将获取的响应直接在log中打印出来(hex形式)
+    QString hexResponse=response.toHex();
+    QString logText = getTimestamp();
+    logText.append("接收到原始数据(Hex:"+hexResponse+")");
+    ui->logTextEdit->append(logText); // 记录日志
+
     if(TCP_UNANSWER_STATE==sendCmdFlag)
     {
         QMessageBox::information(this,"警告","下位机在无TCP请求时进行了响应\n请确认下位机是否正常工作!");
-        QString hexResponse=response.toHex();
-        QString logText = getTimestamp();
-        logText.append("下位机异常响应:(Hex:"+hexResponse+")");
-        ui->logTextEdit->append(logText); // 记录日志
-
         return;
     }
 
@@ -222,31 +220,187 @@ void Widget::on_socketReadyRead()
         response=removeCmdPktHeader(response,&header);
         qDebug()<<"response:"<<response.toHex();
 
-        if(TCP_SEND_DEFAULT_STATE == sendCmdFlag)
-        {
-            parseDefalutResponse(response);
-            sendCmdFlag=TCP_UNANSWER_STATE;
-        }
-        //只有当上位机发送获取设备物理参数命令后sendCmdFlag才会被置为TCP_SEND_GET_DEV_PARAMETER
-        //从而进入该分支处理物理参数包,其他模式都是默认模式,只会回复0或1
-        else if(TCP_SEND_GET_DEV_PARAMETER == sendCmdFlag)
-        {
-            qDebug()<<"处理设备物理参数响应!";
-            parseOtherResponse(response,&phyPara);
-            sendCmdFlag=TCP_UNANSWER_STATE;
-        }
-        else
-        {   qDebug()<<"sendCmdFlag:"<<sendCmdFlag;
-            QMessageBox::information(this,"警告","上位机处于异常的TCP接受状态!无法解析数据包!");
+        /*只有当上位机发送获取设备物理参数命令后sendCmdFlag才会被置为TCP_SEND_GET_DEV_PARAMETER
+        从而进入该分支处理物理参数包,其他模式都是默认模式,只会回复0或1*/
+        switch (sendCmdFlag) {
+            case TCP_SEND_DEFAULT_STATE://默认响应
+                parseDefalutResponse(response);
+                sendCmdFlag = TCP_UNANSWER_STATE;
+                break;
+
+            case TCP_SEND_GET_DEV_PARAMETER://获取物理参数响应
+                qDebug() << "处理设备物理参数响应!";
+                parseOtherResponse(response, &phyPara);
+                sendCmdFlag = TCP_UNANSWER_STATE;
+                break;
+
+            case TCP_SEND_GET_WORK_PARAMETER://获取工作参数响应
+                // TODO: 根据需求实现工作参数解析逻辑
+                break;
+
+            case TCP_SEND_GET_SATELLITE_INFO://获取卫星信息响应
+                // TODO: 根据需求实现卫星信息解析逻辑
+                break;
+
+            case TCP_SEND_GET_DEVICE_STATUS://获取设备状态信息响应
+                //TODO:实现逻辑需求
+                break;
+
+            case TCP_EXCHANGE_SOFTWARE_VERSION://双向发送软件版本
+                //TODO:实现逻辑需求
+                break;
+
+            default:
+                qDebug() << "sendCmdFlag:" << sendCmdFlag;
+                QMessageBox::information(this, "警告", "上位机处于异常的TCP接受状态!无法解析数据包!");
+                break;
         }
     }
     else
     {
         QMessageBox::information(this,"警告","下位机响应数据无效!查看日志输出获取详细信息");
-        QString hexResponse=response.toHex();
-        QString logText = getTimestamp();
-        logText.append("下位机异常响应:(Hex:"+hexResponse+")");
-        ui->logTextEdit->append(logText); // 记录日志
+    }
+}
+
+void Widget::parseDefalutResponse(QByteArray response)
+{
+    uint8_t tcpRespond = static_cast<uint8_t>(response.at(0));
+    QString logText = getTimestamp();
+
+    switch (tcpRespond) {
+    case 0:
+        logText += "设置成功!";
+        if(NORMAL_MODE==devStateSet)//正常工作模式设置成功
+            ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//设备状态指示灯变为绿色
+        else if(LOW_POWER_MODE==devStateSet)//低功耗模式设置成功
+            ui->devStateLitLabel->setPixmap(greyLit.scaled(60,60));//设备状态指示灯变为灰色
+        break;
+    case 1:
+        logText += "设置失败!";
+        if(NORMAL_MODE==devStateSet)//正常模式设置失败
+        {
+            ui->devStateLitLabel->setPixmap(greyLit.scaled(60,60));//设备状态指示灯变为灰色
+            devStateSet=LOW_POWER_MODE;
+        }
+        else if(LOW_POWER_MODE==devStateSet)//低功耗模式设置失败
+        {
+            ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//设备状态指示灯变为绿色
+            devStateSet=NORMAL_MODE;
+        }
+        //TODO:设备状态设置成功时,状态可知,可是没有一个参数用来表示设备当前的工作状态
+        break;
+    case 2:
+        logText += "数采系统正在启动中...";
+        break;
+    default:
+        logText += "未知响应!";
+        break;
+    }
+
+    QString hexResponse=response.toHex();
+    logText.append("(Hex:"+hexResponse+")");
+
+    ui->logTextEdit->append(logText); // 记录日志
+}
+
+//实现接收数据包解析,将结构体指针与数据包对齐
+//TODO:根据协议规定,计算物理参数,浮点数转换有误,原因未知
+void Widget::parseOtherResponse(QByteArray response,devPhysicsParameter *phyPara)
+{
+    if(response.size()< static_cast<int>(sizeof(devPhysicsParameter)))
+    {
+        QMessageBox::information(this,"警告","下位机响应回复物理参数数据包长度有误!");
+        return;
+    }
+    else
+    {
+        qDebug() << "Size of devPhysicsParameter:" << sizeof(devPhysicsParameter);
+        memcpy(phyPara,response.constData(),sizeof(devPhysicsParameter));
+
+        //日志区打印设备物理参数
+        ui->logTextEdit->append(getTimestamp()+"获取板卡物理参数如下:");
+
+        ui->logTextEdit->append("工作模式: " + QString::number(phyPara->workMode));
+        ui->logTextEdit->append("板卡电流: " + QString::number(phyPara->current, 'f', 2) + " A");
+        ui->logTextEdit->append("电池百分比: " + QString::number(phyPara->batPercent) + " %");
+        ui->logTextEdit->append("电池电压: " + QString::number(phyPara->batVol, 'f', 2) + " V");
+        ui->logTextEdit->append("板卡温度: " + QString::number(phyPara->temperature, 'f', 2) + " °C");
+//        ui->logTextEdit->append("电池电压 (hex): " + QString::number(*reinterpret_cast<uint32_t*>(&phyPara->batVol), 16));
+//        ui->logTextEdit->append("板卡温度 (hex): " + QString::number(*reinterpret_cast<uint32_t*>(&phyPara->temperature), 16));
+
+        //将物理参数显示在对应的文本框
+        ui->BatVolLineEdit->setText(QString::number(phyPara->batVol, 'f', 2) + " V");//显示电池电压
+        ui->BatPercentLineEdit->setText(QString::number(phyPara->batPercent) + " %");//显示电池百分比
+        ui->CurrentLineEdit->setText(QString::number(phyPara->current, 'f', 2) + " A");//显示板卡电流
+        ui->TemperLineEdit->setText(QString::number(phyPara->temperature, 'f', 2) + " °C");//显示板卡温度
+    }
+
+}
+
+void Widget::parseOtherResponse(QByteArray response, satelliteInfo *satInfo)
+{
+    if(response.size()< static_cast<int>(sizeof(satelliteInfo)))
+    {
+        QMessageBox::information(this,"警告","下位机响应回复卫星信息数据包长度有误!");
+        return;
+    }
+    else
+    {
+        memcpy(satInfo,response.constData(),sizeof(satelliteInfo));
+        ui->logTextEdit->append(getTimestamp()+"获取卫星信息如下:");
+
+        ui->logTextEdit->append("经度: " + QString::number(satInfo->longitude, 'f', 6));
+        ui->logTextEdit->append("纬度: " + QString::number(satInfo->latitude, 'f', 6));
+        ui->logTextEdit->append("椭球高: " + QString::number(satInfo->ellipsoidHeight, 'f', 2) + " m");
+        ui->logTextEdit->append("高程差: " + QString::number(satInfo->diffHeight, 'f', 2) + " m");
+        ui->logTextEdit->append("水平偏北方向: " + QString::number(satInfo->horiNorthDire, 'f', 2) + " °");
+        ui->logTextEdit->append("垂直俯仰方向: " + QString::number(satInfo->vertiPitchDire, 'f', 2) + " °");
+        ui->logTextEdit->append("天线距离: " + QString::number(satInfo->antennaDistance, 'f', 2) + " m");
+        ui->logTextEdit->append("位置类型: " + QString::number(satInfo->positionType));
+        ui->logTextEdit->append("GNSS质量指标: " + QString::number(satInfo->GNSS_QualIndicator));
+    }
+}
+
+void Widget::parseOtherResponse(QByteArray response, devState *devSta)
+{
+    if(response.size()< static_cast<int>(sizeof(devState)))
+    {
+        QMessageBox::information(this,"警告","下位机响应回复设备状态数据包长度有误!");
+        return;
+    }
+    else
+    {
+        memcpy(devSta,response.constData(),sizeof(devState));
+        ui->logTextEdit->append(getTimestamp()+"获取设备状态信息如下:");
+
+        ui->logTextEdit->append("采集状态: " + QString::number(devSta->collectionState));
+        ui->logTextEdit->append("对时状态: " + QString::number(devSta->timeState));
+        ui->logTextEdit->append("卫星状态: " + QString::number(devSta->satelliteState));
+        ui->logTextEdit->append("预留字: " + QString::number(devSta->reserveWord));
+        ui->logTextEdit->append("总存储空间: " + QString::number(devSta->totalSpace) + " B");
+        ui->logTextEdit->append("可用存储空间: " + QString::number(devSta->freeSpace) + " B");
+        ui->logTextEdit->append("电池电压: " + QString::number(devSta->batVol, 'f', 2) + " V");
+        ui->logTextEdit->append("板卡温度: " + QString::number(devSta->temperature, 'f', 2) + " °C");
+    }
+}
+
+void Widget::parseOtherResponse(QByteArray response, softwareVersion *softVer)
+{
+    if(response.size()< static_cast<int>(sizeof(devPhysicsParameter)))
+    {
+        QMessageBox::information(this,"警告","下位机响应回复软件版本数据包长度有误!");
+        return;
+    }
+    else
+    {
+        memcpy(softVer,response.constData(),sizeof(softwareVersion));
+
+        QString versionStr = QString("%1.%2.%3.%4")
+                                 .arg(softVer->w1)
+                                 .arg(softVer->w2)
+                                 .arg(softVer->w3)
+                                 .arg(softVer->w4);
+        ui->logTextEdit->append(getTimestamp()+"软件版本: " + versionStr);
     }
 }
 
@@ -355,147 +509,6 @@ void Widget::on_sendBtn_clicked()
     }
 }
 
-void Widget::parseDefalutResponse(QByteArray response)
-{
-    uint8_t tcpRespond = static_cast<uint8_t>(response.at(0));
-    QString logText = getTimestamp();
-
-    switch (tcpRespond) {
-    case 0:
-        logText += "设置成功!";
-        if(NORMAL_MODE==devStateSet)//正常工作模式设置成功
-            ui->devStateLitLabel->setPixmap(greenLit.scaled(32,32));//设备状态指示灯变为绿色
-        else if(LOW_POWER_MODE==devStateSet)//低功耗模式设置成功
-            ui->devStateLitLabel->setPixmap(greyLit.scaled(32,32));//设备状态指示灯变为灰色
-        break;
-    case 1:
-        logText += "设置失败!";
-        if(NORMAL_MODE==devStateSet)//正常模式设置失败
-        {
-            ui->devStateLitLabel->setPixmap(greyLit.scaled(32,32));//设备状态指示灯变为灰色
-            devStateSet=LOW_POWER_MODE;
-        }
-        else if(LOW_POWER_MODE==devStateSet)//低功耗模式设置失败
-        {
-            ui->devStateLitLabel->setPixmap(greenLit.scaled(32,32));//设备状态指示灯变为绿色
-            devStateSet=NORMAL_MODE;
-        }
-        //TODO:设备状态设置成功时,状态可知,可是没有一个参数用来表示设备当前的工作状态
-        break;
-    case 2:
-        logText += "数采系统正在启动中...";
-        break;
-    default:
-        logText += "未知响应!";
-        break;
-    }
-
-    QString hexResponse=response.toHex();
-    logText.append("(Hex:"+hexResponse+")");
-
-    ui->logTextEdit->append(logText); // 记录日志
-}
-
-//实现接收数据包解析,将结构体指针与数据包对齐
-//TODO:根据协议规定,计算物理参数,浮点数转换有误,原因未知
-void Widget::parseOtherResponse(QByteArray response,devPhysicsParameter *phyPara)
-{
-    if(response.size()< static_cast<int>(sizeof(devPhysicsParameter)))
-    {
-        QMessageBox::information(this,"警告","下位机响应回复物理参数数据包长度有误!");
-        return;
-    }
-    else
-    {
-        qDebug() << "Size of devPhysicsParameter:" << sizeof(devPhysicsParameter);
-        memcpy(phyPara,response.constData(),sizeof(devPhysicsParameter));
-
-        ui->logTextEdit->append(getTimestamp()+"获取板卡物理参数如下:");
-
-        ui->logTextEdit->append("工作模式: " + QString::number(phyPara->workMode));
-        ui->logTextEdit->append("板卡电流: " + QString::number(phyPara->current, 'f', 2) + " A");
-        ui->logTextEdit->append("电池百分比: " + QString::number(phyPara->batPercent) + " %");
-        ui->logTextEdit->append("电池电压: " + QString::number(phyPara->batVol, 'f', 2) + " V");
-        ui->logTextEdit->append("板卡温度: " + QString::number(phyPara->temperature, 'f', 2) + " °C");
-//        ui->logTextEdit->append("电池电压 (hex): " + QString::number(*reinterpret_cast<uint32_t*>(&phyPara->batVol), 16));
-//        ui->logTextEdit->append("板卡温度 (hex): " + QString::number(*reinterpret_cast<uint32_t*>(&phyPara->temperature), 16));
-    }
-
-    QString hexResponse=response.toHex();
-    QString logText = getTimestamp();
-    logText.append("(Hex:"+hexResponse+")");
-
-    ui->logTextEdit->append(logText); // 记录日志
-}
-
-void Widget::parseOtherResponse(QByteArray response, satelliteInfo *satInfo)
-{
-    if(response.size()< static_cast<int>(sizeof(satelliteInfo)))
-    {
-        QMessageBox::information(this,"警告","下位机响应回复卫星信息数据包长度有误!");
-        return;
-    }
-    else
-    {
-        memcpy(satInfo,response.constData(),sizeof(satelliteInfo));
-        ui->logTextEdit->append(getTimestamp()+"获取卫星信息如下:");
-
-        ui->logTextEdit->append("经度: " + QString::number(satInfo->longitude, 'f', 6));
-        ui->logTextEdit->append("纬度: " + QString::number(satInfo->latitude, 'f', 6));
-        ui->logTextEdit->append("椭球高: " + QString::number(satInfo->ellipsoidHeight, 'f', 2) + " m");
-        ui->logTextEdit->append("高程差: " + QString::number(satInfo->diffHeight, 'f', 2) + " m");
-        ui->logTextEdit->append("水平偏北方向: " + QString::number(satInfo->horiNorthDire, 'f', 2) + " °");
-        ui->logTextEdit->append("垂直俯仰方向: " + QString::number(satInfo->vertiPitchDire, 'f', 2) + " °");
-        ui->logTextEdit->append("天线距离: " + QString::number(satInfo->antennaDistance, 'f', 2) + " m");
-        ui->logTextEdit->append("位置类型: " + QString::number(satInfo->positionType));
-        ui->logTextEdit->append("GNSS质量指标: " + QString::number(satInfo->GNSS_QualIndicator));
-    }
-}
-
-void Widget::parseOtherResponse(QByteArray response, devState *devSta)
-{
-    if(response.size()< static_cast<int>(sizeof(devState)))
-    {
-        QMessageBox::information(this,"警告","下位机响应回复设备状态数据包长度有误!");
-        return;
-    }
-    else
-    {
-        memcpy(devSta,response.constData(),sizeof(devState));
-        ui->logTextEdit->append(getTimestamp()+"获取设备状态信息如下:");
-
-        ui->logTextEdit->append("采集状态: " + QString::number(devSta->collectionState));
-        ui->logTextEdit->append("对时状态: " + QString::number(devSta->timeState));
-        ui->logTextEdit->append("卫星状态: " + QString::number(devSta->satelliteState));
-        ui->logTextEdit->append("预留字: " + QString::number(devSta->reserveWord));
-        ui->logTextEdit->append("总存储空间: " + QString::number(devSta->totalSpace) + " B");
-        ui->logTextEdit->append("可用存储空间: " + QString::number(devSta->freeSpace) + " B");
-        ui->logTextEdit->append("电池电压: " + QString::number(devSta->batVol, 'f', 2) + " V");
-        ui->logTextEdit->append("板卡温度: " + QString::number(devSta->temperature, 'f', 2) + " °C");
-    }
-}
-
-void Widget::parseOtherResponse(QByteArray response, softwareVersion *softVer)
-{
-    if(response.size()< static_cast<int>(sizeof(devPhysicsParameter)))
-    {
-        QMessageBox::information(this,"警告","下位机响应回复软件版本数据包长度有误!");
-        return;
-    }
-    else
-    {
-        memcpy(softVer,response.constData(),sizeof(softwareVersion));
-
-
-        QString versionStr = QString("%1.%2.%3.%4")
-                                 .arg(softVer->w1)
-                                 .arg(softVer->w2)
-                                 .arg(softVer->w3)
-                                 .arg(softVer->w4);
-        ui->logTextEdit->append(getTimestamp()+"软件版本: " + versionStr);
-    }
-}
-
 //获取当前时间戳用于日志打印,格式"yyyy-MM-dd HH:mm:ss"
 QString getTimestamp()
 {
@@ -507,19 +520,20 @@ QString getTimestamp()
 //判断发送的命令是否是命令集中的数据
 TcpSendCmdType Widget::CmdTcpType(uint8_t cmdHeader)
 {
-    if(0xF1==cmdHeader||
-       0xC1==cmdHeader||
-       0xC2==cmdHeader||
-       0xC3==cmdHeader||
-       0xC4==cmdHeader||
-       0xC5==cmdHeader||
-       0xC8==cmdHeader||
-       0xC9==cmdHeader||
-       0xDA==cmdHeader)
-
+    if(0xF1==cmdHeader||//0/1
+       0xC1==cmdHeader||//0/1
+       0xC2==cmdHeader||//0/1
+       0xC3==cmdHeader||//0/1
+       0xC4==cmdHeader||//0/1
+       0xC8==cmdHeader||//0/1
+       0xC9==cmdHeader||//0/1
+       0xDA==cmdHeader)//TODO:0xDA是采集数据上报的命令,回复不是0/1,但是走的是另外的端口后续或许需要额外的实现方法
+        //下位机回复如果是0或1的命令返回该参数
         return TCP_SEND_DEFAULT_STATE;
     else if(0xCA==cmdHeader)
         return TCP_SEND_GET_DEV_PARAMETER;
+    else if(0xC5==cmdHeader)
+        return TCP_SEND_GET_WORK_PARAMETER;
     else if(0xC6==cmdHeader)
         return TCP_SEND_GET_SATELLITE_INFO;
     else if(0xC7==cmdHeader)
@@ -530,7 +544,7 @@ TcpSendCmdType Widget::CmdTcpType(uint8_t cmdHeader)
         return TCP_UNANSWER_STATE;
 }
 
-//
+//去除收到的数据包的包头,只留下数据部分
 QByteArray removeCmdPktHeader(QByteArray response,CmdPacketHeader *header)
 {
     QByteArray headerBytes = response.left(12);
@@ -539,3 +553,39 @@ QByteArray removeCmdPktHeader(QByteArray response,CmdPacketHeader *header)
 
     return response;
 }
+
+//获取设备物理参数信息按键槽函数
+void Widget::on_getDevPhyParaBtn_clicked()
+{
+    ui->sendTextEdit->clear();
+    ui->sendTextEdit->setText("ca ff");
+}
+
+//获取设备卫星信息按键槽函数
+void Widget::on_getSateInfoBtn_clicked()
+{
+    ui->sendTextEdit->clear();
+    ui->sendTextEdit->setText("c6 ff");
+}
+
+//查询设备状态槽函数
+void Widget::on_getDevStateBtn_clicked()
+{
+    ui->sendTextEdit->clear();
+    ui->sendTextEdit->setText("c7 ff");
+}
+
+//查询设备工作参数槽函数
+void Widget::on_getDevWorkParaBtn_clicked()
+{
+    ui->sendTextEdit->clear();
+    ui->sendTextEdit->setText("c5 ff");
+}
+
+//强制更新位置槽函数
+void Widget::on_forceUpdateLocBtn_clicked()
+{
+    ui->sendTextEdit->clear();
+    ui->sendTextEdit->setText("c9 ff");
+}
+

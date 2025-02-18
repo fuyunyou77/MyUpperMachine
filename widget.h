@@ -22,9 +22,11 @@ enum TcpSendCmdType : uint8_t{
     TCP_UNANSWER_STATE=0x00,//无响应状态,初始默认状态,在该状态下上位机没有发出tcp请求,下位机不应该有tcp响应
     TCP_SEND_DEFAULT_STATE=0xFF,//默认回复状态，单片机只会回复一个字节的0或1
     TCP_SEND_GET_DEV_PARAMETER=0XCA,//获取设备物理参数命令，需要在tcp数据接收函数中调用命令解析函数
+    TCP_SEND_GET_WORK_PARAMETER=0xC5,//获取设备工作参数
     TCP_SEND_GET_SATELLITE_INFO=0xC6,//获取卫星信息
     TCP_SEND_GET_DEVICE_STATUS=0xC7,//获取设备状态信息
     TCP_EXCHANGE_SOFTWARE_VERSION=0xCF//双向发送软件版本
+
 };
 
 enum WorkMode : uint8_t {
@@ -57,7 +59,13 @@ private slots:
 
     void on_socketReadyRead(); // 处理下位机响应
 
-    void on_sendBtn_clicked();
+    void on_sendBtn_clicked();//处理发送按钮按下槽函数
+
+    void on_getDevPhyParaBtn_clicked();//获取设备物理参数信息按键槽函数
+    void on_getSateInfoBtn_clicked();//获取设备卫星信息按键槽函数
+    void on_getDevStateBtn_clicked();//查询设备状态槽函数
+    void on_getDevWorkParaBtn_clicked();//查询设备工作参数槽函数
+    void on_forceUpdateLocBtn_clicked();//强制更新位置槽函数
 
 private:
     Ui::Widget *ui;
