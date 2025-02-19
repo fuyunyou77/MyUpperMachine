@@ -23,6 +23,8 @@ enum CommandWord : uint8_t {
     CMD_GET_DEV_PHY_PARAMETERS = 0XCA
 };
 
+
+
 #pragma pack(push, 1)
 //定义不同的结构体存储不同的回复数据
 typedef struct {

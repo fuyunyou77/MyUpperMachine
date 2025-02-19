@@ -9,6 +9,8 @@ Widget::Widget(QWidget *parent)
     , yellowLit(":/icon/yellow_light.png")
 {
     ui->setupUi(this);
+    ui->normalModeBtn->setCheckable(false);
+    ui->lowPowerModeBtn->setCheckable(false);
 
     socket = new QTcpSocket;//创建Socket对象
 
@@ -48,6 +50,9 @@ void Widget::on_normalModeBtn_clicked()
     }
     else
     {
+        ui->normalModeBtn->setChecked(true);
+        ui->lowPowerModeBtn->setChecked(false);
+
         if(NORMAL_MODE==devStateSet)
         {
             QMessageBox::information(this,"注意","当前已处于正常工作模式!");
@@ -59,6 +64,7 @@ void Widget::on_normalModeBtn_clicked()
         //更改标志量设置
         devStateSet=NORMAL_MODE;
         sendCmdFlag=TCP_SEND_DEFAULT_STATE;
+        changeWorkModeFlag=true;
 
         QByteArray packet;
         packet.append(buildCmdPktHeader(CMD_SET_WORK_MODE,DEV_DEFAULT_ID));
@@ -83,6 +89,7 @@ void Widget::on_normalModeBtn_clicked()
 
 void Widget::on_lowPowerModeBtn_clicked()
 {
+
     if(socket->state()==QAbstractSocket::UnconnectedState)
     {
         qDebug()<<"lowPowerModeBtn";
@@ -90,6 +97,10 @@ void Widget::on_lowPowerModeBtn_clicked()
     }
     else
     {
+
+        ui->lowPowerModeBtn->setChecked(true);
+        ui->normalModeBtn->setChecked(false);
+
         if(LOW_POWER_MODE==devStateSet)
         {
             QMessageBox::information(this,"注意","当前已处于低功耗模式!");
@@ -100,6 +111,7 @@ void Widget::on_lowPowerModeBtn_clicked()
         //更改标志量设置
         devStateSet=LOW_POWER_MODE;
         sendCmdFlag=TCP_SEND_DEFAULT_STATE;
+        changeWorkModeFlag=true;
 
         QByteArray packet;
         packet.append(buildCmdPktHeader(CMD_SET_WORK_MODE,DEV_DEFAULT_ID));
@@ -130,6 +142,11 @@ void Widget::on_connectBtn_clicked()
     QString port = ui->PortLineEdit->text();
     QString recvMask=ui->MaskLineEdit->text();
 
+    if(IP.isEmpty()||port.isEmpty())
+    {
+        QMessageBox::information(this,"注意","未输入IP地址或端口号!");
+        return;
+    }
 
     //连接服务器
     socket->connectToHost(QHostAddress(IP),port.toUShort());
@@ -158,10 +175,13 @@ void Widget::on_disconnectBtn_clicked()
 
 void Widget::on_serverConnectted()
 {
+    ui->normalModeBtn->setCheckable(true);
+    ui->lowPowerModeBtn->setCheckable(true);
+    ui->normalModeBtn->setChecked(true);
+
     ui->netStateLitLabel ->setPixmap(yellowLit.scaled(60,60));//设置指示灯为黄色常亮,表示连接
     ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//初始连接板卡时，板卡一定为正常模式，设备状态显示绿灯
     //TODO:TCP连接成功后自动发起一次获取设备物理参数请求,获取其设备状态用于其他各项信息显示
-
 
     // 断开旧的 readyRead 信号连接，避免重复绑定
     disconnect(socket, &QTcpSocket::readyRead, this, &Widget::on_socketReadyRead);
@@ -271,21 +291,50 @@ void Widget::parseDefalutResponse(QByteArray response)
     case 0:
         logText += "设置成功!";
         if(NORMAL_MODE==devStateSet)//正常工作模式设置成功
-            ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//设备状态指示灯变为绿色
+        {
+            //与工作模式切换相关的ui变化只有在确定发出来工作模式切换请求的情况下(标志量为真)才进行
+            if(true==changeWorkModeFlag)
+            {
+                ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//设备状态指示灯变为绿色
+                ui->normalModeBtn->setChecked(true);
+                ui->lowPowerModeBtn->setChecked(false);
+                changeWorkModeFlag=false;
+            }
+        }
         else if(LOW_POWER_MODE==devStateSet)//低功耗模式设置成功
-            ui->devStateLitLabel->setPixmap(greyLit.scaled(60,60));//设备状态指示灯变为灰色
+        {
+            if(true==changeWorkModeFlag)
+            {
+                ui->devStateLitLabel->setPixmap(greyLit.scaled(60,60));//设备状态指示灯变为灰色
+                ui->normalModeBtn->setChecked(false);
+                ui->lowPowerModeBtn->setChecked(true);
+                changeWorkModeFlag=false;
+            }
+        }
         break;
     case 1:
         logText += "设置失败!";
         if(NORMAL_MODE==devStateSet)//正常模式设置失败
         {
-            ui->devStateLitLabel->setPixmap(greyLit.scaled(60,60));//设备状态指示灯变为灰色
-            devStateSet=LOW_POWER_MODE;
+            if(true==changeWorkModeFlag)
+            {
+                ui->devStateLitLabel->setPixmap(greyLit.scaled(60,60));//设备状态指示灯变为灰色
+                ui->normalModeBtn->setChecked(false);
+                ui->lowPowerModeBtn->setChecked(true);
+                changeWorkModeFlag=false;
+                devStateSet=LOW_POWER_MODE;
+            }
         }
         else if(LOW_POWER_MODE==devStateSet)//低功耗模式设置失败
         {
-            ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//设备状态指示灯变为绿色
-            devStateSet=NORMAL_MODE;
+            if(true==changeWorkModeFlag)
+            {
+                ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//设备状态指示灯变为绿色
+                ui->normalModeBtn->setChecked(true);
+                ui->lowPowerModeBtn->setChecked(false);
+                changeWorkModeFlag=false;
+                devStateSet=NORMAL_MODE;
+            }
         }
         //TODO:设备状态设置成功时,状态可知,可是没有一个参数用来表示设备当前的工作状态
         break;
@@ -404,6 +453,42 @@ void Widget::parseOtherResponse(QByteArray response, softwareVersion *softVer)
     }
 }
 
+void Widget::parseOtherResponse(QByteArray response, devWorkParameter *devWorkParam)
+{
+    if (response.size() < static_cast<int>(sizeof(devWorkParameter))) {
+        QMessageBox::information(this, "警告", "下位机响应回复设备工作参数数据包长度有误!");
+        return;
+    } else {
+        memcpy(devWorkParam, response.constData(), sizeof(devWorkParameter));
+        ui->logTextEdit->append(getTimestamp() + "获取设备工作参数如下:");
+
+        ui->logTextEdit->append("采样频率: " + QString::number(devWorkParam->sampleFreq) + " Hz");
+        ui->logTextEdit->append("卫星类型: " + QString::number(devWorkParam->sateType));
+
+        // 打印通道量程类型
+        ui->logTextEdit->append("通道量程类型:");
+        ui->logTextEdit->append("  通道0: " + QString::number(devWorkParam->rangeTypeChannel0));
+        ui->logTextEdit->append("  通道1: " + QString::number(devWorkParam->rangeTypeChannel1));
+        ui->logTextEdit->append("  通道2: " + QString::number(devWorkParam->rangeTypeChannel2));
+        ui->logTextEdit->append("  通道3: " + QString::number(devWorkParam->rangeTypeChannel3));
+        ui->logTextEdit->append("  通道4: " + QString::number(devWorkParam->rangeTypeChannel4));
+        ui->logTextEdit->append("  通道5: " + QString::number(devWorkParam->rangeTypeChannel5));
+        ui->logTextEdit->append("  通道6: " + QString::number(devWorkParam->rangeTypeChannel6));
+        ui->logTextEdit->append("  通道7: " + QString::number(devWorkParam->rangeTypeChannel7));
+
+        // 打印通道信号类型
+        ui->logTextEdit->append("通道信号类型:");
+        ui->logTextEdit->append("  通道0: " + QString::number(devWorkParam->signalTypeChannel0));
+        ui->logTextEdit->append("  通道1: " + QString::number(devWorkParam->signalTypeChannel1));
+        ui->logTextEdit->append("  通道2: " + QString::number(devWorkParam->signalTypeChannel2));
+        ui->logTextEdit->append("  通道3: " + QString::number(devWorkParam->signalTypeChannel3));
+        ui->logTextEdit->append("  通道4: " + QString::number(devWorkParam->signalTypeChannel4));
+        ui->logTextEdit->append("  通道5: " + QString::number(devWorkParam->signalTypeChannel5));
+        ui->logTextEdit->append("  通道6: " + QString::number(devWorkParam->signalTypeChannel6));
+        ui->logTextEdit->append("  通道7: " + QString::number(devWorkParam->signalTypeChannel7));
+    }
+}
+
 void Widget::on_sendBtn_clicked()
 {
     if(socket->state()==QAbstractSocket::UnconnectedState)
@@ -415,31 +500,9 @@ void Widget::on_sendBtn_clicked()
     {
         QString sendText = ui->sendTextEdit->toPlainText().remove(' ');
 
-        if(sendText.isEmpty())
+        //判断要发送的字符串是否非法
+        if(isStringInvalid(sendText))
         {
-            QMessageBox::information(this,"提示","发送区为空，请输入内容！");
-            // 防止信号再次触发
-            disconnect(ui->normalModeBtn, &QPushButton::clicked, this, &Widget::on_sendBtn_clicked);
-            return;
-        }
-
-        // 检查输入是否为合法的十六进制字符串
-        bool isValidHex = true;
-        for (int i = 0; i < sendText.size(); ++i)
-        {
-            if (!sendText.at(i).isDigit() && !sendText.at(i).isLetter() ||
-                (sendText.at(i).toUpper() > 'F' && sendText.at(i).toUpper() < 'A'))
-            {
-                isValidHex = false;
-                break;
-            }
-        }
-
-        if (!isValidHex || sendText.size() % 2 != 0)
-        {
-            QMessageBox::information(this, "错误", "请输入有效的十六进制字符串（偶数长度）！");
-            // 防止信号再次触发
-            disconnect(ui->normalModeBtn, &QPushButton::clicked, this, &Widget::on_sendBtn_clicked);
             return;
         }
 
@@ -450,19 +513,16 @@ void Widget::on_sendBtn_clicked()
         if (!ok)
         {
             QMessageBox::information(this, "错误", "无法解析命令，请检查输入！");
-            // 防止信号再次触发
-            disconnect(ui->normalModeBtn, &QPushButton::clicked, this, &Widget::on_sendBtn_clicked);
             return;
         }
 
         //判断发送命令对应的TCP类型
+        //TODO:这一部分数据可以提取成函数,用于判断数据包类型
         sendCmdFlag=CmdTcpType(cmdHeader);
 
         if(TCP_UNANSWER_STATE==sendCmdFlag)
         {
-            QMessageBox::information(this,"错误","发送的命令不在命令集中,请检查输入！");
-            // 防止信号再次触发
-            disconnect(ui->normalModeBtn, &QPushButton::clicked, this, &Widget::on_sendBtn_clicked);
+            QMessageBox::information(this,"错误","发送的命令不在命令集之中,请检查输入！");
             return;
         }
 
@@ -503,11 +563,52 @@ void Widget::on_sendBtn_clicked()
         {
             ui->logTextEdit->append(getTimestamp() + "成功发送: " + sendText);
         }
-
-        // 防止信号再次触发
-        disconnect(ui->normalModeBtn, &QPushButton::clicked, this, &Widget::on_sendBtn_clicked);
     }
 }
+
+//判断字符串是否有效
+bool Widget::isStringInvalid(QString sendText)
+{
+    if(sendText.isEmpty())
+    {
+        QMessageBox::information(this,"提示","发送区为空，请输入内容！");
+        // 防止信号再次触发
+        disconnect(ui->normalModeBtn, &QPushButton::clicked, this, &Widget::on_sendBtn_clicked);
+        return true;
+    }
+
+    // 检查输入是否为合法的十六进制字符串
+    bool isValidHex = true;
+    for (int i = 0; i < sendText.size(); ++i)
+    {
+        if (!sendText.at(i).isDigit() && !sendText.at(i).isLetter() ||
+            (sendText.at(i).toUpper() > 'F' && sendText.at(i).toUpper() < 'A'))
+        {
+            isValidHex = false;
+            break;
+        }
+    }
+
+    if (!isValidHex || sendText.size() % 2 != 0)
+    {
+        QMessageBox::information(this, "错误", "请输入有效的十六进制字符串（偶数长度）！");
+        // 防止信号再次触发
+        disconnect(ui->normalModeBtn, &QPushButton::clicked, this, &Widget::on_sendBtn_clicked);
+        return true;
+    }
+
+    return false;
+}
+
+//bool Widget::isNotInCmdSet(TcpSendCmdType sendCmdFlag)
+//{
+//    switch (sendCmdFlag) {
+//    case TCP_SEND_DEFAULT_STATE:
+
+//        break;
+
+//    }
+//}
 
 //获取当前时间戳用于日志打印,格式"yyyy-MM-dd HH:mm:ss"
 QString getTimestamp()
@@ -526,8 +627,7 @@ TcpSendCmdType Widget::CmdTcpType(uint8_t cmdHeader)
        0xC3==cmdHeader||//0/1
        0xC4==cmdHeader||//0/1
        0xC8==cmdHeader||//0/1
-       0xC9==cmdHeader||//0/1
-       0xDA==cmdHeader)//TODO:0xDA是采集数据上报的命令,回复不是0/1,但是走的是另外的端口后续或许需要额外的实现方法
+       0xC9==cmdHeader)//0/1
         //下位机回复如果是0或1的命令返回该参数
         return TCP_SEND_DEFAULT_STATE;
     else if(0xCA==cmdHeader)
@@ -539,7 +639,13 @@ TcpSendCmdType Widget::CmdTcpType(uint8_t cmdHeader)
     else if(0xC7==cmdHeader)
         return TCP_SEND_GET_DEVICE_STATUS;
     else if(0xCF==cmdHeader)
-        return TCP_EXCHANGE_SOFTWARE_VERSION;
+        return TCP_SEND_EXCHANGE_SOFTWARE_VERSION;
+    else if(0xDA==cmdHeader)
+    {
+        //TODO:0xDA是采集数据上报的命令,走的是另外的端口后续或许需要额外的实现方法
+        QMessageBox::information(this,"抱歉","该命令的功能尚未实现!请使用其他命令尝试");
+        return TCP_SEND_REPORT_COLLECTION_DATA;
+    }
     else
         return TCP_UNANSWER_STATE;
 }
