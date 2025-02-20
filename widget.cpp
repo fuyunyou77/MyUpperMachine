@@ -42,7 +42,6 @@ Widget::~Widget()
 
 void Widget::on_normalModeBtn_clicked()
 {
-
     if(socket->state()==QAbstractSocket::UnconnectedState)
     {
         qDebug()<<"normalModeBtn";
@@ -67,7 +66,8 @@ void Widget::on_normalModeBtn_clicked()
         changeWorkModeFlag=true;
 
         QByteArray packet;
-        packet.append(buildCmdPktHeader(CMD_SET_WORK_MODE,DEV_DEFAULT_ID));
+
+        packet.append(buildCmdPktHeader(CMD_SET_WORK_MODE,devID));
         // 包总长度（4字节，包头12B + 数据1B = 13 → 0x0D）
         uint32_t totalLength = 13;
         packet.append(reinterpret_cast<char*>(&totalLength), 4);
@@ -114,7 +114,7 @@ void Widget::on_lowPowerModeBtn_clicked()
         changeWorkModeFlag=true;
 
         QByteArray packet;
-        packet.append(buildCmdPktHeader(CMD_SET_WORK_MODE,DEV_DEFAULT_ID));
+        packet.append(buildCmdPktHeader(CMD_SET_WORK_MODE,devID));
         // 包总长度（4字节，包头12B + 数据1B = 13 → 0x0D）
         uint32_t totalLength = 13;
         packet.append(reinterpret_cast<char*>(&totalLength), 4);
@@ -141,6 +141,7 @@ void Widget::on_connectBtn_clicked()
     QString IP = ui->IPLineEdit->text();
     QString port = ui->PortLineEdit->text();
     QString recvMask=ui->MaskLineEdit->text();
+    QString recvID=ui->devIDLineEdit->text();
 
     if(IP.isEmpty()||port.isEmpty())
     {
@@ -148,8 +149,46 @@ void Widget::on_connectBtn_clicked()
         return;
     }
 
+    //子网掩码可以为空,此时使用默认的子网掩码255.255.255.0
+    if(!recvMask.isEmpty() && !isValidSubnetMask(recvMask))
+    {
+        QMessageBox::information(this,"注意","输入的子网掩码无效!");
+        return;
+    }
+    else if(isValidSubnetMask(recvMask))//如果子网掩码为空,使用接收到的子网掩码代替存储的子网掩码
+    {
+        mask=recvMask;
+    }
+
+    //TODO:在此处处理子网掩码将Qstring类型转换为quint32传递给下面的ipv4验证代码
+
+    if(!isIPv4AddressEx(IP,
+                        AllowNormal|AllowLoopback,
+                        0xC0A80000,//子网网段,192.168.0.0
+                        0xFFFFFF00//子网掩码,255.255.255.0
+                        ))
+    {
+        QMessageBox::information(this,"注意","输入的IP地址无效!");
+        return;
+    }
+
+
+    //设备id可以为空,此时使用默认的id,0xff
+    //TODO:有关设备ID的部分需要增加与IP的联动
+    if(!recvID.isEmpty() && !isDevIDValid(recvID))
+    {
+        QMessageBox::information(this,"注意","输入的设备ID无效!");
+        return;
+    }
+    else if(isDevIDValid(recvID))//如果设备id合法,此处使用接收到的id代替存储的设备id
+    {
+        devID=static_cast<uint8_t>(recvID.toInt());
+    }
+
+    qDebug()<<"socket state:"<<socket->state();
     //连接服务器
     socket->connectToHost(QHostAddress(IP),port.toUShort());
+    ui->logTextEdit->append(getTimestamp()+"正在进行TCP连接...");
 
     //断开socket旧有的连接成功信号与槽
     disconnect(socket,&QTcpSocket::connected,this,&Widget::on_serverConnectted);
@@ -160,17 +199,183 @@ void Widget::on_connectBtn_clicked()
     disconnect(socket,static_cast<void (QTcpSocket::*)(QAbstractSocket::SocketError)>(&QTcpSocket::error),this,&Widget::on_serverConnectError);
     //连接socket的连接错误信号与槽
     connect(socket,static_cast<void (QTcpSocket::*)(QAbstractSocket::SocketError)>(&QTcpSocket::error),this,&Widget::on_serverConnectError);
+}
+
+//bool Widget::isIPv4Address(const QString &ip)
+//{
+//    QHostAddress addr;
+//    return addr.setAddress(ip) &&
+//           (addr.protocol() == QAbstractSocket::IPv4Protocol);
+//}
+
+//判断输入的IPv4地址是否合法,宽松验证,允许带前导0的格式(192.01.1.001)
+//FIXME:这里的合法性判断有问题,对于192.168.0.0这一类代表一整个网段的ip无法被过滤
+bool Widget::isIPv4AddressEx(const QString &ip,
+                    IPv4ValidationFlags flags = AllowNormal|AllowLoopback,
+                    quint32 network = 0xC0A80000,       // 网络地址（需配合掩码使用）
+                    quint32 mask = 0xFFFFFF00) // 子网掩码（默认不检查网络地址）
+{
+    // 基础格式验证
+    QHostAddress addr;
+    if (!addr.setAddress(ip) || addr.protocol() != QAbstractSocket::IPv4Protocol) {
+        return false;
+    }
+
+    // 严格四段格式检查（允许前导零但必须四段）
+    QStringList parts = ip.split('.');
+    if (parts.size() != 4) return false; // 必须四段
+
+    // 检查每段是否为0-255的数字（允许前导零）
+    QRegularExpression octetRegex("^0$|^[1-9]\\d?$|^1\\d{2}$|^2[0-4]\\d$|^25[0-5]$");
+    for (const QString &part : parts) {
+        if (!octetRegex.match(part).hasMatch()) return false;
+    }
+
+    // 转换为32位无符号整数（网络字节序）
+    quint32 ipv4 = addr.toIPv4Address();
+    const quint32 ipv4HostOrder = qToBigEndian(ipv4); // 转换为大端序便于位运算
+
+    // 1. 全零地址检查
+    if (ipv4HostOrder == 0) {
+        qDebug()<<"全零地址检查";
+        return flags.testFlag(AllowZeroAddress);
+    }
+
+    // 2. 环回地址检查（127.0.0.0/8）
+    if ((ipv4HostOrder & 0xFF000000) == 0x7F000000) {
+        qDebug()<<"环回地址检查";
+        return flags.testFlag(AllowLoopback);
+    }
+
+    // 3. 多播地址检查（224.0.0.0/4）
+    if ((ipv4HostOrder & 0xF0000000) == 0xE0000000) {
+        qDebug()<<"多播地址检查";
+        return flags.testFlag(AllowMulticast);
+    }
+
+    // 4. 链路本地地址（169.254.0.0/16）
+    if ((ipv4HostOrder & 0xFFFF0000) == 0xA9FE0000) {
+        qDebug()<<"链路本地地址检查";
+        return flags.testFlag(AllowLinkLocal);
+    }
+
+    // 5. 文档地址检查（TEST-NET-1/2/3）
+    const quint32 testNet1 = 0xC0000200; // 192.0.2.0/24
+    const quint32 testNet2 = 0xC6336400; // 198.51.100.0/24
+    const quint32 testNet3 = 0xCB007100; // 203.0.113.0/24
+    if ((ipv4HostOrder & 0xFFFFFF00) == testNet1 ||
+        (ipv4HostOrder & 0xFFFFFF00) == testNet2 ||
+        (ipv4HostOrder & 0xFFFFFF00) == testNet3) {
+        qDebug()<<"文档地址检查";
+        return flags.testFlag(AllowDocumentation);
+    }
+
+    // 6. 有限广播地址（255.255.255.255）
+    if (ipv4HostOrder == 0xFFFFFFFF) {
+        qDebug()<<"有限广播地址检查";
+        return flags.testFlag(AllowBroadcast);
+    }
+
+    // 7. 网络地址检查（需提供网络地址和掩码）
+    if (mask != 0xFFFFFFFF) { // 只要掩码有效就检查
+        quint32 networkHostOrder = qToBigEndian(network);
+        if ((ipv4HostOrder & mask) == (networkHostOrder & mask)) {
+            quint32 hostPart = ipv4HostOrder & (~mask);
+            if (hostPart == 0 || hostPart == (~mask)) {
+                // 必须显式允许网络/广播地址
+                qDebug()<<"网络地址检查";
+                return flags.testFlag(AllowNetworkBroadcast);
+            }
+        }
+    }
+
+    // 8. 普通地址检查（排除其他特殊地址）
+    if (flags.testFlag(AllowNormal)) {
+        // 排除已被其他标志处理的情况
+        const bool isSpecialAddress =
+            (ipv4HostOrder == 0) ||
+            ((ipv4HostOrder & 0xFF000000) == 0x7F000000) ||
+            ((ipv4HostOrder & 0xF0000000) == 0xE0000000) ||
+            ((ipv4HostOrder & 0xFFFF0000) == 0xA9FE0000) ||
+            (ipv4HostOrder == 0xFFFFFFFF);
+        qDebug()<<"普通地址检查";
+        return !isSpecialAddress; // 只有非特殊地址才返回true
+    }
+
+    return false;
+}
+
+//判断输入的端口号是否合法,默认0端口合法
+bool Widget::isPortValid(const QString &port, bool allowZero = true)
+{
+    QString trimmed = port.trimmed();
+    if (trimmed.isEmpty()) return false;
+
+    bool ok;
+    quint16 portNum = trimmed.toUShort(&ok, 10); // 强制十进制转换
+    return ok && (allowZero || portNum > 0);
+}
+
+//判断输入的设备id是否合法,默认0是合法值
+bool Widget::isDevIDValid(const QString &devID)
+{
+    bool ok;
+    int idNum= devID.toInt(&ok);
+    return ok && idNum>=0 && idNum<=255;
 
 }
 
-void Widget::on_disconnectBtn_clicked()
+//判断子网掩码是否合法
+bool Widget::isValidSubnetMask(const QString &input)
 {
-    //断开socket旧有的断开连接信号与槽
-    disconnect(socket,&QTcpSocket::disconnected,this,&Widget::on_serverDisconnnectted);
-    //连接socket的断开连接信号与槽
-    connect(socket,&QTcpSocket::disconnected,this,&Widget::on_serverDisconnnectted);
+    QString str = input.trimmed();
 
-    socket->disconnectFromHost();
+    // 检查CIDR表示法（/0 - /32）
+    if (str.startsWith("/")) {
+        bool ok;
+        int cidr = str.mid(1).toInt(&ok);
+        return ok && cidr >= 0 && cidr <= 32;
+    }
+
+    // 检查点分十进制格式
+    QStringList parts = str.split('.');
+    if (parts.size() != 4) return false;
+
+    quint32 mask = 0;
+    for (const QString &part : parts) {
+        bool ok;
+        quint8 octet = part.toUShort(&ok);
+        if (!ok || octet > 255) return false;
+        mask = (mask << 8) | octet; // 组合为32位整数
+    }
+
+    // 特殊值处理（全0无效）
+    if (mask == 0) return false;
+
+    // 位运算验证连续1的掩码
+    quint32 inverted = ~mask + 1;
+    return (inverted & (inverted - 1)) == 0;
+}
+
+void Widget::on_disconnectBtn_clicked()
+{  
+    QAbstractSocket::SocketState state=socket->state();
+
+    if(QAbstractSocket::ConnectingState==state
+       ||QAbstractSocket::HostLookupState==state)
+    {
+        socket->abort();
+        ui->logTextEdit->append(getTimestamp()+"已中断连接行为!");
+    }
+    else if(QAbstractSocket::ConnectedState==state)
+    {
+        socket->disconnectFromHost();
+    }
+
+    //断开socket旧有的断开连接信号与槽
+    disconnect(socket,&QTcpSocket::disconnected,this,&Widget::on_serverDisconnectted);
+    //连接socket的断开连接信号与槽
+    connect(socket,&QTcpSocket::disconnected,this,&Widget::on_serverDisconnectted);
 }
 
 void Widget::on_serverConnectted()
@@ -197,8 +402,12 @@ void Widget::on_serverConnectted()
     ui->logTextEdit->append(logText);
 }
 
-void Widget::on_serverDisconnnectted()
+void Widget::on_serverDisconnectted()
 {
+    ui->normalModeBtn->setChecked(false);
+    ui->lowPowerModeBtn->setChecked(false);
+    ui->normalModeBtn->setCheckable(false);
+    ui->lowPowerModeBtn->setCheckable(false);
     ui->netStateLitLabel ->setPixmap(greyLit.scaled(60,60));//设置网络状态指示灯为灰色,表示断开连接
     ui->devStateLitLabel ->setPixmap(greyLit.scaled(60,60));//设置设备状态指示灯为灰色,表示断开连接
 
@@ -222,10 +431,9 @@ void Widget::on_socketReadyRead()
     QByteArray response = socket->readAll();
 
     //将获取的响应直接在log中打印出来(hex形式)
-    QString hexResponse=response.toHex();
-    QString logText = getTimestamp();
-    logText.append("接收到原始数据(Hex:"+hexResponse+")");
-    ui->logTextEdit->append(logText); // 记录日志
+    QString hexResponse=response.toHex().toUpper();
+    hexResponse=hexResponse.replace(QRegularExpression("(..)"),"\\1 ").trimmed();
+    ui->logTextEdit->append(getTimestamp()+"接收到原始数据\n(Hex:"+hexResponse+")");
 
     if(TCP_UNANSWER_STATE==sendCmdFlag)
     {
@@ -248,7 +456,7 @@ void Widget::on_socketReadyRead()
                 sendCmdFlag = TCP_UNANSWER_STATE;
                 break;
 
-            case TCP_SEND_GET_DEV_PARAMETER://获取物理参数响应
+            case TCP_SEND_GET_PHY_PARAMETER://获取物理参数响应
                 qDebug() << "处理设备物理参数响应!";
                 parseOtherResponse(response, &phyPara);
                 sendCmdFlag = TCP_UNANSWER_STATE;
@@ -266,7 +474,7 @@ void Widget::on_socketReadyRead()
                 //TODO:实现逻辑需求
                 break;
 
-            case TCP_EXCHANGE_SOFTWARE_VERSION://双向发送软件版本
+            case TCP_SEND_EXCHANGE_SOFTWARE_VERSION://双向发送软件版本
                 //TODO:实现逻辑需求
                 break;
 
@@ -517,18 +725,15 @@ void Widget::on_sendBtn_clicked()
         }
 
         //判断发送命令对应的TCP类型
-        //TODO:这一部分数据可以提取成函数,用于判断数据包类型
         sendCmdFlag=CmdTcpType(cmdHeader);
-
         if(TCP_UNANSWER_STATE==sendCmdFlag)
         {
-            QMessageBox::information(this,"错误","发送的命令不在命令集之中,请检查输入！");
             return;
         }
 
         // 构建数据包
         QByteArray packet;
-        packet.append(buildCmdPktHeader((CommandWord)cmdHeader,DEV_DEFAULT_ID)); // 使用提取的命令头
+        packet.append(buildCmdPktHeader((CommandWord)cmdHeader,devID)); // 使用提取的命令头
 
         // 将剩余的十六进制字符串转换为字节数组
         QByteArray dataBytes;
@@ -600,16 +805,6 @@ bool Widget::isStringInvalid(QString sendText)
     return false;
 }
 
-//bool Widget::isNotInCmdSet(TcpSendCmdType sendCmdFlag)
-//{
-//    switch (sendCmdFlag) {
-//    case TCP_SEND_DEFAULT_STATE:
-
-//        break;
-
-//    }
-//}
-
 //获取当前时间戳用于日志打印,格式"yyyy-MM-dd HH:mm:ss"
 QString getTimestamp()
 {
@@ -619,35 +814,70 @@ QString getTimestamp()
 }
 
 //判断发送的命令是否是命令集中的数据
+//TODO：可以在case分支中增加判断发送数据合法性的代码，需要额外增加
 TcpSendCmdType Widget::CmdTcpType(uint8_t cmdHeader)
 {
-    if(0xF1==cmdHeader||//0/1
-       0xC1==cmdHeader||//0/1
-       0xC2==cmdHeader||//0/1
-       0xC3==cmdHeader||//0/1
-       0xC4==cmdHeader||//0/1
-       0xC8==cmdHeader||//0/1
-       0xC9==cmdHeader)//0/1
-        //下位机回复如果是0或1的命令返回该参数
-        return TCP_SEND_DEFAULT_STATE;
-    else if(0xCA==cmdHeader)
-        return TCP_SEND_GET_DEV_PARAMETER;
-    else if(0xC5==cmdHeader)
-        return TCP_SEND_GET_WORK_PARAMETER;
-    else if(0xC6==cmdHeader)
-        return TCP_SEND_GET_SATELLITE_INFO;
-    else if(0xC7==cmdHeader)
-        return TCP_SEND_GET_DEVICE_STATUS;
-    else if(0xCF==cmdHeader)
-        return TCP_SEND_EXCHANGE_SOFTWARE_VERSION;
-    else if(0xDA==cmdHeader)
+    switch (cmdHeader)
     {
-        //TODO:0xDA是采集数据上报的命令,走的是另外的端口后续或许需要额外的实现方法
-        QMessageBox::information(this,"抱歉","该命令的功能尚未实现!请使用其他命令尝试");
-        return TCP_SEND_REPORT_COLLECTION_DATA;
-    }
-    else
+    case TCP_SEND_SET_DEV_WORKMODE:
+        QMessageBox::information(this,"警告","不支持发送命令设置工作模式, 请使用模式按键!");
+//        changeWorkModeFlag = true;
+//        ui->logTextEdit->append(getTimestamp() + "正在发送设置设备工作模式命令...");
+        return TCP_UNANSWER_STATE;//TODO:返回值后续可能会更改
+
+    case TCP_SEND_SET_FACTORY_IP:
+        ui->logTextEdit->append(getTimestamp() + "正在发送设置出厂ip命令...");
+        return TCP_SEND_DEFAULT_STATE;
+
+    case TCP_SEND_FACTORY_CALIBRATION:
+        ui->logTextEdit->append(getTimestamp() + "正在发送设置出厂校准命令...");
+        return TCP_SEND_DEFAULT_STATE;
+
+    case TCP_SEND_DATA_COLLECTION:
+        ui->logTextEdit->append(getTimestamp() + "正在发送采集命令...");
+        return TCP_SEND_DEFAULT_STATE;
+
+    case TCP_SEND_SET_WORK_PARAMETER:
+        ui->logTextEdit->append(getTimestamp() + "正在发送设置设备工作参数命令...");
+        return TCP_SEND_DEFAULT_STATE;
+
+    case TCP_SEND_NETWORK_TIME_SYNC:
+        ui->logTextEdit->append(getTimestamp() + "正在发送网络时间同步命令...");
+        return TCP_SEND_DEFAULT_STATE;
+
+    case TCP_SEND_FORCE_UPDATE_POSITION:
+        ui->logTextEdit->append(getTimestamp() + "正在发送强制更新位置命令...");
+        return TCP_SEND_DEFAULT_STATE;
+
+    case TCP_SEND_GET_PHY_PARAMETER:
+        ui->logTextEdit->append(getTimestamp() + "正在发送获取设备物理参数命令...");
+        return TCP_SEND_GET_PHY_PARAMETER;
+
+    case TCP_SEND_GET_WORK_PARAMETER:
+        ui->logTextEdit->append(getTimestamp() + "正在发送获取设备工作参数命令...");
+        return TCP_SEND_GET_WORK_PARAMETER;
+
+    case TCP_SEND_GET_SATELLITE_INFO:
+        ui->logTextEdit->append(getTimestamp() + "正在发送获取卫星信息命令...");
+        return TCP_SEND_GET_SATELLITE_INFO;
+
+    case TCP_SEND_GET_DEVICE_STATUS:
+        ui->logTextEdit->append(getTimestamp() + "正在发送获取设备状态信息命令...");
+        return TCP_SEND_GET_DEVICE_STATUS;
+
+    case TCP_SEND_EXCHANGE_SOFTWARE_VERSION:
+        ui->logTextEdit->append(getTimestamp() + "正在发送双向发送软件版本命令...");
+        return TCP_SEND_EXCHANGE_SOFTWARE_VERSION;
+
+    case TCP_SEND_REPORT_COLLECTION_DATA:
+        //ui->logTextEdit->append(getTimestamp() + "正在发送上报采集数据命令...");
+        QMessageBox::information(this, "抱歉", "该命令的功能尚未实现!请使用其他命令尝试");
+        return TCP_UNANSWER_STATE;//TODO:返回值需要修改
+
+    default:
+        QMessageBox::information(this,"错误","发送的命令不在命令集之中,请检查输入！");
         return TCP_UNANSWER_STATE;
+    }
 }
 
 //去除收到的数据包的包头,只留下数据部分

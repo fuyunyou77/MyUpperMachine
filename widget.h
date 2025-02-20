@@ -9,13 +9,30 @@
 #include <QHostAddress>
 #include <QDateTime>
 #include <QtEndian>
+#include <QFlags>
+#include <QRegularExpression>
 #include "cmdBuild.h"
 
 #define CMD_PORT 21079//命令端口
 #define DATA_PORT 21081//数据流端口
 #define CMD_DEFAULT_DATA 0xFF//上位机发送命令包的默认数据内容
 #define CMD_HEADER_LENGTH 12//命令包包头长度
-#define DEV_DEFAULT_ID 0xFF//默认设备ID
+
+
+
+enum IPv4ValidationFlag {
+    AllowNormal           = 0x0001,  // 允许普通地址（默认包含）
+    AllowLoopback         = 0x0002,  // 允许环回地址（127.0.0.0/8）
+    AllowMulticast        = 0x0004,  // 允许多播地址（224.0.0.0/4）
+    AllowLinkLocal        = 0x0008,  // 允许链路本地地址（169.254.0.0/16）
+    AllowDocumentation    = 0x0010,  // 允许文档地址（192.0.2.0/24等）
+    AllowZeroAddress      = 0x0020,  // 允许全零地址（0.0.0.0）
+    AllowBroadcast        = 0x0040,  // 允许有限广播地址（255.255.255.255）
+    AllowNetworkBroadcast = 0x0080,  // 允许网络/广播地址标志
+    AllowAll              = 0x00FF   // 允许所有地址
+};
+Q_DECLARE_FLAGS(IPv4ValidationFlags, IPv4ValidationFlag)
+Q_DECLARE_OPERATORS_FOR_FLAGS(IPv4ValidationFlags)
 
 //定义TCP发送命令类型
 enum TcpSendCmdType : uint8_t{
@@ -32,7 +49,8 @@ enum TcpSendCmdType : uint8_t{
     TCP_SEND_FORCE_UPDATE_POSITION = 0xC9,//强制更新位置
     TCP_SEND_EXCHANGE_SOFTWARE_VERSION=0xCF,//双向发送软件版本
     TCP_SEND_REPORT_COLLECTION_DATA = 0xDA,//上报采集数据
-    TCP_SEND_GET_DEV_PARAMETER=0XCA//获取设备物理参数命令，需要在tcp数据接收函数中调用命令解析函数
+    TCP_SEND_GET_PHY_PARAMETER=0XCA,//获取设备物理参数命令
+    TCP_SEND_SET_DEV_WORKMODE=0xF1//设置设备工作模式
 };
 
 enum WorkMode : uint8_t {
@@ -47,11 +65,14 @@ QT_END_NAMESPACE
 class Widget : public QWidget
 {
     Q_OBJECT
+    Q_ENUM(IPv4ValidationFlag)
 
 public:
     CmdPacketHeader header;
     Widget(QWidget *parent = nullptr);
     ~Widget();
+
+
 
 private slots:
     void on_normalModeBtn_clicked();//正常工作模式按钮
@@ -60,7 +81,7 @@ private slots:
     void on_disconnectBtn_clicked();//断开TCP连接按钮
 
     void on_serverConnectted();//成功连接服务器
-    void on_serverDisconnnectted();//断开服务器连接
+    void on_serverDisconnectted();//断开服务器连接
     void on_serverConnectError();
 
     void on_socketReadyRead(); // 处理下位机响应
@@ -81,6 +102,7 @@ private:
     QPixmap greenLit;
     QPixmap yellowLit;
     QString mask="255.255.255.0";
+    uint8_t devID=0xff;
 
     //TODO:设备模式从设备获取更安全,设备出现故障一上电就是低功耗模式,那么这个预设就是有问题的
     WorkMode devStateSet=NORMAL_MODE;//设备上电是正常工作模式
@@ -103,8 +125,15 @@ private:
     void parseOtherResponse(QByteArray response,devWorkParameter *devWorkParam);
     TcpSendCmdType CmdTcpType(uint8_t cmdHeader);
     bool isStringInvalid(QString sendText);
-//    bool isNotInCmdSet(TcpSendCmdType sendCmdFlag);//判断sendTextLine输入的命令是否在命令集中,还未实现
+
+    //进行TCP连接前相关输入的检查
+//    bool isIPv4Address(const QString &ip);
+    bool isIPv4AddressEx(const QString &ip,
+                        IPv4ValidationFlags flags,
+                        quint32 network ,       // 网络地址（需配合掩码使用）
+                        quint32 mask); // 子网掩码（默认不检查网络地址）
+    bool isPortValid(const QString &port, bool allowZero);
+    bool isDevIDValid(const QString &devID);
+    bool isValidSubnetMask(const QString &input);
 };
-
-
 #endif // WIDGET_H
