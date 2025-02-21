@@ -94,6 +94,8 @@ private slots:
     void on_getDevWorkParaBtn_clicked();//查询设备工作参数槽函数
     void on_forceUpdateLocBtn_clicked();//强制更新位置槽函数
 
+    void on_userDefCmdBtn_clicked();
+
 private:
     Ui::Widget *ui;
 

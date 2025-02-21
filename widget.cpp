@@ -33,6 +33,9 @@ Widget::Widget(QWidget *parent)
     {
         ui->sendTextEdit->clear();//清空发送区
     });
+
+    //自定义命令按钮，切换stacked widget页面
+    //connect(ui->userDefCmdBtn,&QPushButton::clicked,this,&Widget::on_userDefCmdBtn_clicked);
 }
 
 Widget::~Widget()
@@ -923,5 +926,22 @@ void Widget::on_forceUpdateLocBtn_clicked()
 {
     ui->sendTextEdit->clear();
     ui->sendTextEdit->setText("c9 ff");
+}
+
+
+void Widget::on_userDefCmdBtn_clicked()
+{
+    int nextIndex = (ui->cmdStackedWidget->currentIndex()+1)%ui->cmdStackedWidget->count();
+    //FIXME:此处按键状态判断使用的是硬编码,如果后续在stacked widget中添加新页面,需要修改这里的逻辑
+    if(1==nextIndex)
+    {
+        ui->userDefCmdBtn->setCheckable(true);
+        ui->userDefCmdBtn->setChecked(true);
+    }
+    else
+    {
+        ui->userDefCmdBtn->setChecked(false);
+    }
+    ui->cmdStackedWidget->setCurrentIndex(nextIndex);
 }
 
