@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1154</width>
-    <height>674</height>
+    <width>1036</width>
+    <height>678</height>
    </rect>
   </property>
   <property name="font">
@@ -17,6 +17,9 @@
    </font>
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout_10">
+   <property name="bottomMargin">
+    <number>4</number>
+   </property>
    <item>
     <layout class="QVBoxLayout" name="verticalLayout_2">
      <property name="leftMargin">
@@ -1055,17 +1058,27 @@
           </layout>
          </widget>
          <widget class="QWidget" name="page_2">
-          <widget class="QCheckBox" name="checkBox">
+          <widget class="QTextEdit" name="testTextEdit">
            <property name="geometry">
             <rect>
-             <x>20</x>
-             <y>30</y>
-             <width>73</width>
-             <height>18</height>
+             <x>30</x>
+             <y>40</y>
+             <width>241</width>
+             <height>21</height>
+            </rect>
+           </property>
+          </widget>
+          <widget class="QPushButton" name="pushButton">
+           <property name="geometry">
+            <rect>
+             <x>190</x>
+             <y>100</y>
+             <width>80</width>
+             <height>20</height>
             </rect>
            </property>
            <property name="text">
-            <string>命令1</string>
+            <string>PushButton</string>
            </property>
           </widget>
          </widget>
@@ -1076,7 +1089,7 @@
     </layout>
    </item>
    <item>
-    <layout class="QVBoxLayout" name="verticalLayout_7" stretch="10,1">
+    <layout class="QVBoxLayout" name="verticalLayout_7" stretch="0,1">
      <property name="spacing">
       <number>7</number>
      </property>

@@ -5,12 +5,14 @@
 #include <QProcess>
 #include <QMessageBox>
 #include <QTcpSocket>
-#include <QTcpServer>
+//#include <QTcpServer>
 #include <QHostAddress>
 #include <QDateTime>
 #include <QtEndian>
 #include <QFlags>
 #include <QRegularExpression>
+#include <QTextEdit>
+#include <QPlainTextEdit>
 #include "cmdBuild.h"
 
 #define CMD_PORT 21079//命令端口
@@ -96,6 +98,8 @@ private slots:
 
     void on_userDefCmdBtn_clicked();//切换为用户自定义按键页面
 
+    void adjustTextEditHeight();//调整文本输入框大小
+
 private:
     Ui::Widget *ui;
 
@@ -129,8 +133,8 @@ private:
     bool isStringInvalid(QString sendText);
 
     //进行TCP连接前相关输入的检查
-//    bool isIPv4Address(const QString &ip);
-    bool isIPv4AddressEx(const QString &ip,
+    //bool isIPv4Address(const QString &ip);//宽松的ipv4检查
+    bool isIPv4AddressEx(const QString &ip,//FIXME:严格的ipv4检查(对于整个网段的ip无法判断)
                         IPv4ValidationFlags flags,
                         quint32 network ,       // 网络地址（需配合掩码使用）
                         quint32 mask); // 子网掩码（默认不检查网络地址）
@@ -138,4 +142,5 @@ private:
     bool isDevIDValid(const QString &devID);
     bool isValidSubnetMask(const QString &input);
 };
+
 #endif // WIDGET_H

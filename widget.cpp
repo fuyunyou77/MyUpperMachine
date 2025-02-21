@@ -27,6 +27,9 @@ Widget::Widget(QWidget *parent)
     //连接socket的连接错误信号与槽
     connect(socket,static_cast<void (QTcpSocket::*)(QAbstractSocket::SocketError)>(&QTcpSocket::error),this,&Widget::on_serverConnectError);
 
+    //连接输入区大小控制的信号与槽
+    connect(ui->testTextEdit,&QTextEdit::textChanged,this,&Widget::adjustTextEditHeight);
+
     //日志区清空按钮
     connect(ui->logClearBtn,&QPushButton::clicked,[this]()
     {
@@ -547,7 +550,7 @@ void Widget::parseDefalutResponse(QByteArray response)
 
 //实现接收数据包解析,将结构体指针与数据包对齐
 //TODO:根据协议规定,计算物理参数,浮点数转换有误,原因未知
-void Widget::parseOtherResponse(QByteArray response,devPhysicsParameter *phyPara)
+void Widget::parseOtherResponse(QByteArray response, devPhysicsParameter *phyPara)
 {
     if(response.size()< static_cast<int>(sizeof(devPhysicsParameter)))
     {
@@ -906,7 +909,7 @@ void Widget::on_forceUpdateLocBtn_clicked()
     ui->sendTextEdit->setText("c9 ff");
 }
 
-
+//切换自定义命令页面槽函数
 void Widget::on_userDefCmdBtn_clicked()
 {
     int nextIndex = (ui->cmdStackedWidget->currentIndex()+1)%ui->cmdStackedWidget->count();
@@ -923,3 +926,21 @@ void Widget::on_userDefCmdBtn_clicked()
     ui->cmdStackedWidget->setCurrentIndex(nextIndex);
 }
 
+//调整文本输入框大小槽函数
+void Widget::adjustTextEditHeight()
+{
+    QTextEdit *edit = ui->testTextEdit;
+
+    // 计算高度
+    int docHeight = edit->document()->size().toSize().height();
+    int margin = edit->contentsMargins().top() + edit->contentsMargins().bottom();
+    int newHeight = docHeight + margin;
+
+    // 更新高度
+    edit->setMinimumHeight(qMax(edit->fontMetrics().lineSpacing() + margin, newHeight));
+
+    // 触发布局更新
+    if (edit->parentWidget()) {
+        edit->parentWidget()->adjustSize();
+    }
+}
