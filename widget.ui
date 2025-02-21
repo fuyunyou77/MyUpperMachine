@@ -1054,7 +1054,21 @@
            </item>
           </layout>
          </widget>
-         <widget class="QWidget" name="page_2"/>
+         <widget class="QWidget" name="page_2">
+          <widget class="QCheckBox" name="checkBox">
+           <property name="geometry">
+            <rect>
+             <x>20</x>
+             <y>30</y>
+             <width>73</width>
+             <height>18</height>
+            </rect>
+           </property>
+           <property name="text">
+            <string>命令1</string>
+           </property>
+          </widget>
+         </widget>
         </widget>
        </item>
       </layout>

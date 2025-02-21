@@ -80,9 +80,9 @@ private slots:
     void on_connectBtn_clicked();//开启TCP连接按钮
     void on_disconnectBtn_clicked();//断开TCP连接按钮
 
-    void on_serverConnectted();//成功连接服务器
-    void on_serverDisconnectted();//断开服务器连接
-    void on_serverConnectError();
+    void on_serverConnectted();//TCP成功连接
+    void on_serverDisconnectted();//TCP断开连接
+    void on_serverConnectError();//TCP
 
     void on_socketReadyRead(); // 处理下位机响应
 
@@ -94,7 +94,7 @@ private slots:
     void on_getDevWorkParaBtn_clicked();//查询设备工作参数槽函数
     void on_forceUpdateLocBtn_clicked();//强制更新位置槽函数
 
-    void on_userDefCmdBtn_clicked();
+    void on_userDefCmdBtn_clicked();//切换为用户自定义按键页面
 
 private:
     Ui::Widget *ui;

@@ -18,24 +18,26 @@ Widget::Widget(QWidget *parent)
     ui->devStateLitLabel->setPixmap(greyLit.scaled(60,60));
     ui->netStateLitLabel ->setPixmap(greyLit.scaled(60,60));
 
-    //连接信号与槽
-    connect(ui->normalModeBtn,&QPushButton::clicked,this,&Widget::on_normalModeBtn_clicked,Qt::UniqueConnection);//开启正常模式按钮
-    connect(ui->lowPowerModeBtn,&QPushButton::clicked,this,&Widget::on_lowPowerModeBtn_clicked,Qt::UniqueConnection);//开启低功耗模式按钮
+    //连接socket的连接成功信号与槽
+    connect(socket,&QTcpSocket::connected,this,&Widget::on_serverConnectted);
+    //连接socket的断开连接信号与槽
+    connect(socket,&QTcpSocket::disconnected,this,&Widget::on_serverDisconnectted);
+    //连接socket接收数据信号与槽，如果板卡有回复信息，则触发on_socketReadyRead函数
+    connect(socket, &QTcpSocket::readyRead, this, &Widget::on_socketReadyRead);
+    //连接socket的连接错误信号与槽
+    connect(socket,static_cast<void (QTcpSocket::*)(QAbstractSocket::SocketError)>(&QTcpSocket::error),this,&Widget::on_serverConnectError);
 
     //日志区清空按钮
     connect(ui->logClearBtn,&QPushButton::clicked,[this]()
     {
         ui->logTextEdit->clear();//清空日志区
     });
-
     //发送区清空按钮
     connect(ui->sendClearBtn,&QPushButton::clicked,[this]()
     {
         ui->sendTextEdit->clear();//清空发送区
     });
 
-    //自定义命令按钮，切换stacked widget页面
-    //connect(ui->userDefCmdBtn,&QPushButton::clicked,this,&Widget::on_userDefCmdBtn_clicked);
 }
 
 Widget::~Widget()
@@ -58,8 +60,6 @@ void Widget::on_normalModeBtn_clicked()
         if(NORMAL_MODE==devStateSet)
         {
             QMessageBox::information(this,"注意","当前已处于正常工作模式!");
-            // 防止信号再次触发
-            disconnect(ui->normalModeBtn, &QPushButton::clicked, this, &Widget::on_normalModeBtn_clicked);
             return;
         }
 
@@ -85,9 +85,6 @@ void Widget::on_normalModeBtn_clicked()
             ui->logTextEdit->append(getTimestamp() + "设置为正常工作模式...");
         }
     }
-
-    // 防止信号再次触发
-    disconnect(ui->normalModeBtn, &QPushButton::clicked, this, &Widget::on_normalModeBtn_clicked);
 }
 
 void Widget::on_lowPowerModeBtn_clicked()
@@ -107,8 +104,6 @@ void Widget::on_lowPowerModeBtn_clicked()
         if(LOW_POWER_MODE==devStateSet)
         {
             QMessageBox::information(this,"注意","当前已处于低功耗模式!");
-            // 防止信号再次触发
-            disconnect(ui->lowPowerModeBtn, &QPushButton::clicked, this, &Widget::on_lowPowerModeBtn_clicked);
             return;
         }
         //更改标志量设置
@@ -132,10 +127,6 @@ void Widget::on_lowPowerModeBtn_clicked()
             ui->logTextEdit->append(getTimestamp() + "设置为低功耗模式...");
         }
     }
-
-    // 防止信号再次触发
-    disconnect(ui->lowPowerModeBtn, &QPushButton::clicked, this, &Widget::on_lowPowerModeBtn_clicked);
-
 }
 
 void Widget::on_connectBtn_clicked()
@@ -145,6 +136,12 @@ void Widget::on_connectBtn_clicked()
     QString port = ui->PortLineEdit->text();
     QString recvMask=ui->MaskLineEdit->text();
     QString recvID=ui->devIDLineEdit->text();
+
+    if(QAbstractSocket::ConnectedState==socket->state())
+    {
+        QMessageBox::information(this,"注意","已经连接下位机,请先断开连接!");
+        return;
+    }
 
     if(IP.isEmpty()||port.isEmpty())
     {
@@ -175,7 +172,6 @@ void Widget::on_connectBtn_clicked()
         return;
     }
 
-
     //设备id可以为空,此时使用默认的id,0xff
     //TODO:有关设备ID的部分需要增加与IP的联动
     if(!recvID.isEmpty() && !isDevIDValid(recvID))
@@ -193,15 +189,6 @@ void Widget::on_connectBtn_clicked()
     socket->connectToHost(QHostAddress(IP),port.toUShort());
     ui->logTextEdit->append(getTimestamp()+"正在进行TCP连接...");
 
-    //断开socket旧有的连接成功信号与槽
-    disconnect(socket,&QTcpSocket::connected,this,&Widget::on_serverConnectted);
-    //连接socket的连接成功信号与槽
-    connect(socket,&QTcpSocket::connected,this,&Widget::on_serverConnectted);
-
-    //断开socket旧有的连接错误信号与槽
-    disconnect(socket,static_cast<void (QTcpSocket::*)(QAbstractSocket::SocketError)>(&QTcpSocket::error),this,&Widget::on_serverConnectError);
-    //连接socket的连接错误信号与槽
-    connect(socket,static_cast<void (QTcpSocket::*)(QAbstractSocket::SocketError)>(&QTcpSocket::error),this,&Widget::on_serverConnectError);
 }
 
 //bool Widget::isIPv4Address(const QString &ip)
@@ -374,11 +361,11 @@ void Widget::on_disconnectBtn_clicked()
     {
         socket->disconnectFromHost();
     }
+    else if(QAbstractSocket::UnconnectedState==state)
+    {
+        QMessageBox::information(this,"注意","未连接下位机!");
+    }
 
-    //断开socket旧有的断开连接信号与槽
-    disconnect(socket,&QTcpSocket::disconnected,this,&Widget::on_serverDisconnectted);
-    //连接socket的断开连接信号与槽
-    connect(socket,&QTcpSocket::disconnected,this,&Widget::on_serverDisconnectted);
 }
 
 void Widget::on_serverConnectted()
@@ -390,11 +377,6 @@ void Widget::on_serverConnectted()
     ui->netStateLitLabel ->setPixmap(yellowLit.scaled(60,60));//设置指示灯为黄色常亮,表示连接
     ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//初始连接板卡时，板卡一定为正常模式，设备状态显示绿灯
     //TODO:TCP连接成功后自动发起一次获取设备物理参数请求,获取其设备状态用于其他各项信息显示
-
-    // 断开旧的 readyRead 信号连接，避免重复绑定
-    disconnect(socket, &QTcpSocket::readyRead, this, &Widget::on_socketReadyRead);
-    //连接socket接收数据信号与槽，如果板卡有回复信息，则触发on_socketReadyRead函数
-    connect(socket, &QTcpSocket::readyRead, this, &Widget::on_socketReadyRead);
 
     //TODO:掩码需要可以自定义,此处实现需要修改
     ui->MaskLineEdit->setText(mask);//在掩码位置显示掩码
@@ -780,8 +762,6 @@ bool Widget::isStringInvalid(QString sendText)
     if(sendText.isEmpty())
     {
         QMessageBox::information(this,"提示","发送区为空，请输入内容！");
-        // 防止信号再次触发
-        disconnect(ui->normalModeBtn, &QPushButton::clicked, this, &Widget::on_sendBtn_clicked);
         return true;
     }
 
@@ -800,8 +780,6 @@ bool Widget::isStringInvalid(QString sendText)
     if (!isValidHex || sendText.size() % 2 != 0)
     {
         QMessageBox::information(this, "错误", "请输入有效的十六进制字符串（偶数长度）！");
-        // 防止信号再次触发
-        disconnect(ui->normalModeBtn, &QPushButton::clicked, this, &Widget::on_sendBtn_clicked);
         return true;
     }
 
