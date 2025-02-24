@@ -9,8 +9,12 @@ Widget::Widget(QWidget *parent)
     , yellowLit(":/icon/yellow_light.png")
 {
     ui->setupUi(this);
+    //设置模式控制按钮的选中状态
     ui->normalModeBtn->setCheckable(false);
     ui->lowPowerModeBtn->setCheckable(false);
+
+    //设置自定义命令输入框的高度
+//    ui->testTextEdit->setFixedHeight()
 
     socket = new QTcpSocket;//创建Socket对象
 
@@ -28,12 +32,28 @@ Widget::Widget(QWidget *parent)
     connect(socket,static_cast<void (QTcpSocket::*)(QAbstractSocket::SocketError)>(&QTcpSocket::error),this,&Widget::on_serverConnectError);
 
     //连接输入区大小控制的信号与槽
-    connect(ui->testTextEdit,&QTextEdit::textChanged,this,&Widget::adjustTextEditHeight);
+    //TODO:要将多个控件与一个相同的槽函数进行绑定,其中槽函数根据传入的参数决定在函数中如何操作
+    connect(ui->testTextEdit,&QTextEdit::textChanged,this,[this]()
+    {
+        adjustTextEditHeight(ui->testTextEdit); // 传递当前控件指针
+    });
+    connect(ui->testTextEdit_2,&QTextEdit::textChanged,this,[this]()
+    {
+        adjustTextEditHeight(ui->testTextEdit_2); // 传递当前控件指针
+    });
+    connect(ui->testTextEdit_3,&QTextEdit::textChanged,this,[this]()
+    {
+        adjustTextEditHeight(ui->testTextEdit_3); // 传递当前控件指针
+    });
+    connect(ui->testTextEdit_4,&QTextEdit::textChanged,this,[this]()
+    {
+        adjustTextEditHeight(ui->testTextEdit_4); // 传递当前控件指针
+    });
 
     //日志区清空按钮
     connect(ui->logClearBtn,&QPushButton::clicked,[this]()
     {
-        ui->logTextEdit->clear();//清空日志区
+        ui->logPlainTextEdit->clear();//清空日志区
     });
     //发送区清空按钮
     connect(ui->sendClearBtn,&QPushButton::clicked,[this]()
@@ -62,7 +82,7 @@ void Widget::on_normalModeBtn_clicked()
 
         if(NORMAL_MODE==devStateSet)
         {
-            QMessageBox::information(this,"注意","当前已处于正常工作模式!");
+            QMessageBox::information(this,"注意","请勿重复操作!");
             return;
         }
 
@@ -83,9 +103,9 @@ void Widget::on_normalModeBtn_clicked()
         //将数据通过tcp发出,根据返回值打印日志信息
         qint64 bytesWritten = socket->write(packet);
         if (bytesWritten == -1) {
-            ui->logTextEdit->append(getTimestamp() + "发送失败: " + socket->errorString());
+            ui->logPlainTextEdit->appendPlainText(getTimestamp() + "发送失败: " + socket->errorString());
         } else {
-            ui->logTextEdit->append(getTimestamp() + "设置为正常工作模式...");
+            ui->logPlainTextEdit->appendPlainText(getTimestamp() + "设置为正常工作模式...");
         }
     }
 }
@@ -106,7 +126,7 @@ void Widget::on_lowPowerModeBtn_clicked()
 
         if(LOW_POWER_MODE==devStateSet)
         {
-            QMessageBox::information(this,"注意","当前已处于低功耗模式!");
+            QMessageBox::information(this,"注意","请勿重复操作!");
             return;
         }
         //更改标志量设置
@@ -125,9 +145,9 @@ void Widget::on_lowPowerModeBtn_clicked()
         //将数据通过tcp发出,根据返回值打印日志信息
         qint64 bytesWritten = socket->write(packet);
         if (bytesWritten == -1) {
-            ui->logTextEdit->append(getTimestamp() + "发送失败: " + socket->errorString());
+            ui->logPlainTextEdit->appendPlainText(getTimestamp() + "发送失败: " + socket->errorString());
         } else {
-            ui->logTextEdit->append(getTimestamp() + "设置为低功耗模式...");
+            ui->logPlainTextEdit->appendPlainText(getTimestamp() + "设置为低功耗模式...");
         }
     }
 }
@@ -190,7 +210,7 @@ void Widget::on_connectBtn_clicked()
     qDebug()<<"socket state:"<<socket->state();
     //连接服务器
     socket->connectToHost(QHostAddress(IP),port.toUShort());
-    ui->logTextEdit->append(getTimestamp()+"正在进行TCP连接...");
+    ui->logPlainTextEdit->appendPlainText(getTimestamp()+"正在进行TCP连接...");
 
 }
 
@@ -358,17 +378,18 @@ void Widget::on_disconnectBtn_clicked()
        ||QAbstractSocket::HostLookupState==state)
     {
         socket->abort();
-        ui->logTextEdit->append(getTimestamp()+"已中断连接行为!");
+        ui->logPlainTextEdit->appendPlainText(getTimestamp()+"已中断连接行为!");
+        devStateSet=NORMAL_MODE;
     }
     else if(QAbstractSocket::ConnectedState==state)
     {
         socket->disconnectFromHost();
+        devStateSet=NORMAL_MODE;
     }
     else if(QAbstractSocket::UnconnectedState==state)
     {
         QMessageBox::information(this,"注意","未连接下位机!");
     }
-
 }
 
 void Widget::on_serverConnectted()
@@ -387,7 +408,7 @@ void Widget::on_serverConnectted()
     //在日志栏打印信息
     QString logText=getTimestamp();
     logText.append("下位机连接成功!------>["+ui->IPLineEdit->text()+":"+ui->PortLineEdit->text()+"]");
-    ui->logTextEdit->append(logText);
+    ui->logPlainTextEdit->appendPlainText(logText);
 }
 
 void Widget::on_serverDisconnectted()
@@ -402,7 +423,7 @@ void Widget::on_serverDisconnectted()
     //打印日志
     QString logText=getTimestamp();
     logText.append("下位机连接断开!--\\\\-->["+ui->IPLineEdit->text()+":"+ui->PortLineEdit->text()+"]");
-    ui->logTextEdit->append(logText);
+    ui->logPlainTextEdit->appendPlainText(logText);
 }
 
 //TODO:
@@ -411,7 +432,7 @@ void Widget::on_serverConnectError()
     QMessageBox::information(this,"警告","TCP连接错误!");
     // 获取错误描述
     QString errorDescription = socket->errorString();
-    ui->logTextEdit->append(getTimestamp()+"socketError:"+errorDescription);
+    ui->logPlainTextEdit->appendPlainText(getTimestamp()+"socketError:"+errorDescription);
 }
 
 void Widget::on_socketReadyRead()
@@ -421,7 +442,7 @@ void Widget::on_socketReadyRead()
     //将获取的响应直接在log中打印出来(hex形式)
     QString hexResponse=response.toHex().toUpper();
     hexResponse=hexResponse.replace(QRegularExpression("(..)"),"\\1 ").trimmed();
-    ui->logTextEdit->append(getTimestamp()+"接收到原始数据\n(Hex:"+hexResponse+")");
+    ui->logPlainTextEdit->appendPlainText(getTimestamp()+"接收到原始数据\n(Hex:"+hexResponse+")");
 
     if(TCP_UNANSWER_STATE==sendCmdFlag)
     {
@@ -501,7 +522,7 @@ void Widget::parseDefalutResponse(QByteArray response)
         {
             if(true==changeWorkModeFlag)
             {
-                ui->devStateLitLabel->setPixmap(greyLit.scaled(60,60));//设备状态指示灯变为灰色
+                ui->devStateLitLabel->setPixmap(yellowLit.scaled(60,60));//设备状态指示灯变为黄色
                 ui->normalModeBtn->setChecked(false);
                 ui->lowPowerModeBtn->setChecked(true);
                 changeWorkModeFlag=false;
@@ -514,7 +535,7 @@ void Widget::parseDefalutResponse(QByteArray response)
         {
             if(true==changeWorkModeFlag)
             {
-                ui->devStateLitLabel->setPixmap(greyLit.scaled(60,60));//设备状态指示灯变为灰色
+                ui->devStateLitLabel->setPixmap(yellowLit.scaled(60,60));//设备状态指示灯变为黄色
                 ui->normalModeBtn->setChecked(false);
                 ui->lowPowerModeBtn->setChecked(true);
                 changeWorkModeFlag=false;
@@ -545,7 +566,7 @@ void Widget::parseDefalutResponse(QByteArray response)
     QString hexResponse=response.toHex();
     logText.append("(Hex:"+hexResponse+")");
 
-    ui->logTextEdit->append(logText); // 记录日志
+    ui->logPlainTextEdit->appendPlainText(logText); // 记录日志
 }
 
 //实现接收数据包解析,将结构体指针与数据包对齐
@@ -563,15 +584,15 @@ void Widget::parseOtherResponse(QByteArray response, devPhysicsParameter *phyPar
         memcpy(phyPara,response.constData(),sizeof(devPhysicsParameter));
 
         //日志区打印设备物理参数
-        ui->logTextEdit->append(getTimestamp()+"获取板卡物理参数如下:");
+        ui->logPlainTextEdit->appendPlainText(getTimestamp()+"获取板卡物理参数如下:");
 
-        ui->logTextEdit->append("工作模式: " + QString::number(phyPara->workMode));
-        ui->logTextEdit->append("板卡电流: " + QString::number(phyPara->current, 'f', 2) + " A");
-        ui->logTextEdit->append("电池百分比: " + QString::number(phyPara->batPercent) + " %");
-        ui->logTextEdit->append("电池电压: " + QString::number(phyPara->batVol, 'f', 2) + " V");
-        ui->logTextEdit->append("板卡温度: " + QString::number(phyPara->temperature, 'f', 2) + " °C");
-//        ui->logTextEdit->append("电池电压 (hex): " + QString::number(*reinterpret_cast<uint32_t*>(&phyPara->batVol), 16));
-//        ui->logTextEdit->append("板卡温度 (hex): " + QString::number(*reinterpret_cast<uint32_t*>(&phyPara->temperature), 16));
+        ui->logPlainTextEdit->appendPlainText("工作模式: " + QString::number(phyPara->workMode));
+        ui->logPlainTextEdit->appendPlainText("板卡电流: " + QString::number(phyPara->current, 'f', 2) + " A");
+        ui->logPlainTextEdit->appendPlainText("电池百分比: " + QString::number(phyPara->batPercent) + " %");
+        ui->logPlainTextEdit->appendPlainText("电池电压: " + QString::number(phyPara->batVol, 'f', 2) + " V");
+        ui->logPlainTextEdit->appendPlainText("板卡温度: " + QString::number(phyPara->temperature, 'f', 2) + " °C");
+//        ui->logPlainTextEdit->appendPlainText("电池电压 (hex): " + QString::number(*reinterpret_cast<uint32_t*>(&phyPara->batVol), 16));
+//        ui->logPlainTextEdit->appendPlainText("板卡温度 (hex): " + QString::number(*reinterpret_cast<uint32_t*>(&phyPara->temperature), 16));
 
         //将物理参数显示在对应的文本框
         ui->BatVolLineEdit->setText(QString::number(phyPara->batVol, 'f', 2) + " V");//显示电池电压
@@ -592,17 +613,17 @@ void Widget::parseOtherResponse(QByteArray response, satelliteInfo *satInfo)
     else
     {
         memcpy(satInfo,response.constData(),sizeof(satelliteInfo));
-        ui->logTextEdit->append(getTimestamp()+"获取卫星信息如下:");
+        ui->logPlainTextEdit->appendPlainText(getTimestamp()+"获取卫星信息如下:");
 
-        ui->logTextEdit->append("经度: " + QString::number(satInfo->longitude, 'f', 6));
-        ui->logTextEdit->append("纬度: " + QString::number(satInfo->latitude, 'f', 6));
-        ui->logTextEdit->append("椭球高: " + QString::number(satInfo->ellipsoidHeight, 'f', 2) + " m");
-        ui->logTextEdit->append("高程差: " + QString::number(satInfo->diffHeight, 'f', 2) + " m");
-        ui->logTextEdit->append("水平偏北方向: " + QString::number(satInfo->horiNorthDire, 'f', 2) + " °");
-        ui->logTextEdit->append("垂直俯仰方向: " + QString::number(satInfo->vertiPitchDire, 'f', 2) + " °");
-        ui->logTextEdit->append("天线距离: " + QString::number(satInfo->antennaDistance, 'f', 2) + " m");
-        ui->logTextEdit->append("位置类型: " + QString::number(satInfo->positionType));
-        ui->logTextEdit->append("GNSS质量指标: " + QString::number(satInfo->GNSS_QualIndicator));
+        ui->logPlainTextEdit->appendPlainText("经度: " + QString::number(satInfo->longitude, 'f', 6));
+        ui->logPlainTextEdit->appendPlainText("纬度: " + QString::number(satInfo->latitude, 'f', 6));
+        ui->logPlainTextEdit->appendPlainText("椭球高: " + QString::number(satInfo->ellipsoidHeight, 'f', 2) + " m");
+        ui->logPlainTextEdit->appendPlainText("高程差: " + QString::number(satInfo->diffHeight, 'f', 2) + " m");
+        ui->logPlainTextEdit->appendPlainText("水平偏北方向: " + QString::number(satInfo->horiNorthDire, 'f', 2) + " °");
+        ui->logPlainTextEdit->appendPlainText("垂直俯仰方向: " + QString::number(satInfo->vertiPitchDire, 'f', 2) + " °");
+        ui->logPlainTextEdit->appendPlainText("天线距离: " + QString::number(satInfo->antennaDistance, 'f', 2) + " m");
+        ui->logPlainTextEdit->appendPlainText("位置类型: " + QString::number(satInfo->positionType));
+        ui->logPlainTextEdit->appendPlainText("GNSS质量指标: " + QString::number(satInfo->GNSS_QualIndicator));
     }
 }
 
@@ -616,16 +637,16 @@ void Widget::parseOtherResponse(QByteArray response, devState *devSta)
     else
     {
         memcpy(devSta,response.constData(),sizeof(devState));
-        ui->logTextEdit->append(getTimestamp()+"获取设备状态信息如下:");
+        ui->logPlainTextEdit->appendPlainText(getTimestamp()+"获取设备状态信息如下:");
 
-        ui->logTextEdit->append("采集状态: " + QString::number(devSta->collectionState));
-        ui->logTextEdit->append("对时状态: " + QString::number(devSta->timeState));
-        ui->logTextEdit->append("卫星状态: " + QString::number(devSta->satelliteState));
-        ui->logTextEdit->append("预留字: " + QString::number(devSta->reserveWord));
-        ui->logTextEdit->append("总存储空间: " + QString::number(devSta->totalSpace) + " B");
-        ui->logTextEdit->append("可用存储空间: " + QString::number(devSta->freeSpace) + " B");
-        ui->logTextEdit->append("电池电压: " + QString::number(devSta->batVol, 'f', 2) + " V");
-        ui->logTextEdit->append("板卡温度: " + QString::number(devSta->temperature, 'f', 2) + " °C");
+        ui->logPlainTextEdit->appendPlainText("采集状态: " + QString::number(devSta->collectionState));
+        ui->logPlainTextEdit->appendPlainText("对时状态: " + QString::number(devSta->timeState));
+        ui->logPlainTextEdit->appendPlainText("卫星状态: " + QString::number(devSta->satelliteState));
+        ui->logPlainTextEdit->appendPlainText("预留字: " + QString::number(devSta->reserveWord));
+        ui->logPlainTextEdit->appendPlainText("总存储空间: " + QString::number(devSta->totalSpace) + " B");
+        ui->logPlainTextEdit->appendPlainText("可用存储空间: " + QString::number(devSta->freeSpace) + " B");
+        ui->logPlainTextEdit->appendPlainText("电池电压: " + QString::number(devSta->batVol, 'f', 2) + " V");
+        ui->logPlainTextEdit->appendPlainText("板卡温度: " + QString::number(devSta->temperature, 'f', 2) + " °C");
     }
 }
 
@@ -645,7 +666,7 @@ void Widget::parseOtherResponse(QByteArray response, softwareVersion *softVer)
                                  .arg(softVer->w2)
                                  .arg(softVer->w3)
                                  .arg(softVer->w4);
-        ui->logTextEdit->append(getTimestamp()+"软件版本: " + versionStr);
+        ui->logPlainTextEdit->appendPlainText(getTimestamp()+"软件版本: " + versionStr);
     }
 }
 
@@ -656,32 +677,32 @@ void Widget::parseOtherResponse(QByteArray response, devWorkParameter *devWorkPa
         return;
     } else {
         memcpy(devWorkParam, response.constData(), sizeof(devWorkParameter));
-        ui->logTextEdit->append(getTimestamp() + "获取设备工作参数如下:");
+        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "获取设备工作参数如下:");
 
-        ui->logTextEdit->append("采样频率: " + QString::number(devWorkParam->sampleFreq) + " Hz");
-        ui->logTextEdit->append("卫星类型: " + QString::number(devWorkParam->sateType));
+        ui->logPlainTextEdit->appendPlainText("采样频率: " + QString::number(devWorkParam->sampleFreq) + " Hz");
+        ui->logPlainTextEdit->appendPlainText("卫星类型: " + QString::number(devWorkParam->sateType));
 
         // 打印通道量程类型
-        ui->logTextEdit->append("通道量程类型:");
-        ui->logTextEdit->append("  通道0: " + QString::number(devWorkParam->rangeTypeChannel0));
-        ui->logTextEdit->append("  通道1: " + QString::number(devWorkParam->rangeTypeChannel1));
-        ui->logTextEdit->append("  通道2: " + QString::number(devWorkParam->rangeTypeChannel2));
-        ui->logTextEdit->append("  通道3: " + QString::number(devWorkParam->rangeTypeChannel3));
-        ui->logTextEdit->append("  通道4: " + QString::number(devWorkParam->rangeTypeChannel4));
-        ui->logTextEdit->append("  通道5: " + QString::number(devWorkParam->rangeTypeChannel5));
-        ui->logTextEdit->append("  通道6: " + QString::number(devWorkParam->rangeTypeChannel6));
-        ui->logTextEdit->append("  通道7: " + QString::number(devWorkParam->rangeTypeChannel7));
+        ui->logPlainTextEdit->appendPlainText("通道量程类型:");
+        ui->logPlainTextEdit->appendPlainText("  通道0: " + QString::number(devWorkParam->rangeTypeChannel0));
+        ui->logPlainTextEdit->appendPlainText("  通道1: " + QString::number(devWorkParam->rangeTypeChannel1));
+        ui->logPlainTextEdit->appendPlainText("  通道2: " + QString::number(devWorkParam->rangeTypeChannel2));
+        ui->logPlainTextEdit->appendPlainText("  通道3: " + QString::number(devWorkParam->rangeTypeChannel3));
+        ui->logPlainTextEdit->appendPlainText("  通道4: " + QString::number(devWorkParam->rangeTypeChannel4));
+        ui->logPlainTextEdit->appendPlainText("  通道5: " + QString::number(devWorkParam->rangeTypeChannel5));
+        ui->logPlainTextEdit->appendPlainText("  通道6: " + QString::number(devWorkParam->rangeTypeChannel6));
+        ui->logPlainTextEdit->appendPlainText("  通道7: " + QString::number(devWorkParam->rangeTypeChannel7));
 
         // 打印通道信号类型
-        ui->logTextEdit->append("通道信号类型:");
-        ui->logTextEdit->append("  通道0: " + QString::number(devWorkParam->signalTypeChannel0));
-        ui->logTextEdit->append("  通道1: " + QString::number(devWorkParam->signalTypeChannel1));
-        ui->logTextEdit->append("  通道2: " + QString::number(devWorkParam->signalTypeChannel2));
-        ui->logTextEdit->append("  通道3: " + QString::number(devWorkParam->signalTypeChannel3));
-        ui->logTextEdit->append("  通道4: " + QString::number(devWorkParam->signalTypeChannel4));
-        ui->logTextEdit->append("  通道5: " + QString::number(devWorkParam->signalTypeChannel5));
-        ui->logTextEdit->append("  通道6: " + QString::number(devWorkParam->signalTypeChannel6));
-        ui->logTextEdit->append("  通道7: " + QString::number(devWorkParam->signalTypeChannel7));
+        ui->logPlainTextEdit->appendPlainText("通道信号类型:");
+        ui->logPlainTextEdit->appendPlainText("  通道0: " + QString::number(devWorkParam->signalTypeChannel0));
+        ui->logPlainTextEdit->appendPlainText("  通道1: " + QString::number(devWorkParam->signalTypeChannel1));
+        ui->logPlainTextEdit->appendPlainText("  通道2: " + QString::number(devWorkParam->signalTypeChannel2));
+        ui->logPlainTextEdit->appendPlainText("  通道3: " + QString::number(devWorkParam->signalTypeChannel3));
+        ui->logPlainTextEdit->appendPlainText("  通道4: " + QString::number(devWorkParam->signalTypeChannel4));
+        ui->logPlainTextEdit->appendPlainText("  通道5: " + QString::number(devWorkParam->signalTypeChannel5));
+        ui->logPlainTextEdit->appendPlainText("  通道6: " + QString::number(devWorkParam->signalTypeChannel6));
+        ui->logPlainTextEdit->appendPlainText("  通道7: " + QString::number(devWorkParam->signalTypeChannel7));
     }
 }
 
@@ -750,11 +771,11 @@ void Widget::on_sendBtn_clicked()
 
         if (bytesWritten == -1)
         {
-            ui->logTextEdit->append(getTimestamp() + "发送失败: " + socket->errorString());
+            ui->logPlainTextEdit->appendPlainText(getTimestamp() + "发送失败: " + socket->errorString());
         }
         else
         {
-            ui->logTextEdit->append(getTimestamp() + "成功发送: " + sendText);
+            ui->logPlainTextEdit->appendPlainText(getTimestamp() + "成功发送: " + sendText);
         }
     }
 }
@@ -806,55 +827,55 @@ TcpSendCmdType Widget::CmdTcpType(uint8_t cmdHeader)
     case TCP_SEND_SET_DEV_WORKMODE:
         QMessageBox::information(this,"警告","不支持发送命令设置工作模式, 请使用模式按键!");
 //        changeWorkModeFlag = true;
-//        ui->logTextEdit->append(getTimestamp() + "正在发送设置设备工作模式命令...");
+//        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "正在发送设置设备工作模式命令...");
         return TCP_UNANSWER_STATE;//TODO:返回值后续可能会更改
 
     case TCP_SEND_SET_FACTORY_IP:
-        ui->logTextEdit->append(getTimestamp() + "正在发送设置出厂ip命令...");
+        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "正在发送设置出厂ip命令...");
         return TCP_SEND_DEFAULT_STATE;
 
     case TCP_SEND_FACTORY_CALIBRATION:
-        ui->logTextEdit->append(getTimestamp() + "正在发送设置出厂校准命令...");
+        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "正在发送设置出厂校准命令...");
         return TCP_SEND_DEFAULT_STATE;
 
     case TCP_SEND_DATA_COLLECTION:
-        ui->logTextEdit->append(getTimestamp() + "正在发送采集命令...");
+        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "正在发送采集命令...");
         return TCP_SEND_DEFAULT_STATE;
 
     case TCP_SEND_SET_WORK_PARAMETER:
-        ui->logTextEdit->append(getTimestamp() + "正在发送设置设备工作参数命令...");
+        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "正在发送设置设备工作参数命令...");
         return TCP_SEND_DEFAULT_STATE;
 
     case TCP_SEND_NETWORK_TIME_SYNC:
-        ui->logTextEdit->append(getTimestamp() + "正在发送网络时间同步命令...");
+        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "正在发送网络时间同步命令...");
         return TCP_SEND_DEFAULT_STATE;
 
     case TCP_SEND_FORCE_UPDATE_POSITION:
-        ui->logTextEdit->append(getTimestamp() + "正在发送强制更新位置命令...");
+        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "正在发送强制更新位置命令...");
         return TCP_SEND_DEFAULT_STATE;
 
     case TCP_SEND_GET_PHY_PARAMETER:
-        ui->logTextEdit->append(getTimestamp() + "正在发送获取设备物理参数命令...");
+        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "正在发送获取设备物理参数命令...");
         return TCP_SEND_GET_PHY_PARAMETER;
 
     case TCP_SEND_GET_WORK_PARAMETER:
-        ui->logTextEdit->append(getTimestamp() + "正在发送获取设备工作参数命令...");
+        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "正在发送获取设备工作参数命令...");
         return TCP_SEND_GET_WORK_PARAMETER;
 
     case TCP_SEND_GET_SATELLITE_INFO:
-        ui->logTextEdit->append(getTimestamp() + "正在发送获取卫星信息命令...");
+        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "正在发送获取卫星信息命令...");
         return TCP_SEND_GET_SATELLITE_INFO;
 
     case TCP_SEND_GET_DEVICE_STATUS:
-        ui->logTextEdit->append(getTimestamp() + "正在发送获取设备状态信息命令...");
+        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "正在发送获取设备状态信息命令...");
         return TCP_SEND_GET_DEVICE_STATUS;
 
     case TCP_SEND_EXCHANGE_SOFTWARE_VERSION:
-        ui->logTextEdit->append(getTimestamp() + "正在发送双向发送软件版本命令...");
+        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "正在发送双向发送软件版本命令...");
         return TCP_SEND_EXCHANGE_SOFTWARE_VERSION;
 
     case TCP_SEND_REPORT_COLLECTION_DATA:
-        //ui->logTextEdit->append(getTimestamp() + "正在发送上报采集数据命令...");
+        //ui->logPlainTextEdit->appendPlainText(getTimestamp() + "正在发送上报采集数据命令...");
         QMessageBox::information(this, "抱歉", "该命令的功能尚未实现!请使用其他命令尝试");
         return TCP_UNANSWER_STATE;//TODO:返回值需要修改
 
@@ -927,20 +948,35 @@ void Widget::on_userDefCmdBtn_clicked()
 }
 
 //调整文本输入框大小槽函数
-void Widget::adjustTextEditHeight()
-{
-    QTextEdit *edit = ui->testTextEdit;
+void Widget::adjustTextEditHeight(QTextEdit *senderEdit) {
+    // 确保文档布局更新（计算准确高度）
+    senderEdit->document()->documentLayout()->update();
 
-    // 计算高度
-    int docHeight = edit->document()->size().toSize().height();
-    int margin = edit->contentsMargins().top() + edit->contentsMargins().bottom();
-    int newHeight = docHeight + margin;
+    // 参数定义
+    const int lineHeight = senderEdit->fontMetrics().lineSpacing();
+    const int margin = senderEdit->contentsMargins().top() + senderEdit->contentsMargins().bottom();
+    const int maxHeight = 6 * lineHeight + margin; // 最大高度为6行（根据需求调整）
 
-    // 更新高度
-    edit->setMinimumHeight(qMax(edit->fontMetrics().lineSpacing() + margin, newHeight));
+    // 计算理想高度
+    int docHeight = senderEdit->document()->size().height();
+    int desiredHeight = qMax(lineHeight + margin, qMin(docHeight + margin, maxHeight));
 
-    // 触发布局更新
-    if (edit->parentWidget()) {
-        edit->parentWidget()->adjustSize();
+    // 动态调整高度和滚动条
+    if (desiredHeight < maxHeight) {
+        senderEdit->setFixedHeight(desiredHeight);
+        senderEdit->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff); // 隐藏滚动条
+    } else {
+        senderEdit->setFixedHeight(maxHeight);
+        senderEdit->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded); // 按需显示滚动条
+    }
+
+    // 强制滚动到光标位置
+    QTimer::singleShot(0, senderEdit, [senderEdit]() {
+        senderEdit->ensureCursorVisible();
+    });
+
+    // 更新父布局（防止控件重叠）
+    if (QWidget *parent = senderEdit->parentWidget()) {
+        parent->updateGeometry();
     }
 }

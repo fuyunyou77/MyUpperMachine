@@ -13,6 +13,7 @@
 #include <QRegularExpression>
 #include <QTextEdit>
 #include <QPlainTextEdit>
+#include <QTimer>
 #include "cmdBuild.h"
 
 #define CMD_PORT 21079//命令端口
@@ -57,7 +58,8 @@ enum TcpSendCmdType : uint8_t{
 
 enum WorkMode : uint8_t {
     NORMAL_MODE=0x00,
-    LOW_POWER_MODE=0x01
+    LOW_POWER_MODE=0x01,
+    UNKNOWN_MODE=0xFF
 };
 
 QT_BEGIN_NAMESPACE
@@ -73,8 +75,6 @@ public:
     CmdPacketHeader header;
     Widget(QWidget *parent = nullptr);
     ~Widget();
-
-
 
 private slots:
     void on_normalModeBtn_clicked();//正常工作模式按钮
@@ -98,7 +98,7 @@ private slots:
 
     void on_userDefCmdBtn_clicked();//切换为用户自定义按键页面
 
-    void adjustTextEditHeight();//调整文本输入框大小
+    void adjustTextEditHeight(QTextEdit *edit);//调整文本输入框大小
 
 private:
     Ui::Widget *ui;

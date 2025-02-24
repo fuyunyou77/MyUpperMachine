@@ -1,4 +1,4 @@
-TARGET = DataConllectHelper_v0.3.1
+TARGET = DataConllectHelper_v0.4
 QT       += core gui network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
