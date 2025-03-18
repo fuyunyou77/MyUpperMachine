@@ -120,7 +120,6 @@ void Widget::on_lowPowerModeBtn_clicked()
     }
     else
     {
-
         ui->lowPowerModeBtn->setChecked(true);
         ui->normalModeBtn->setChecked(false);
 
@@ -184,9 +183,8 @@ void Widget::on_connectBtn_clicked()
     }
 
     //TODO:在此处处理子网掩码将Qstring类型转换为quint32传递给下面的ipv4验证代码
-
     if(!isIPv4AddressEx(IP,
-                        AllowNormal|AllowLoopback,
+                        AllowNormal|AllowLoopback|AllowMulticast,
                         0xC0A80000,//子网网段,192.168.0.0
                         0xFFFFFF00//子网掩码,255.255.255.0
                         ))
@@ -457,8 +455,10 @@ void Widget::on_socketReadyRead()
         response=removeCmdPktHeader(response,&header);
         qDebug()<<"response:"<<response.toHex();
 
-        /*只有当上位机发送获取设备物理参数命令后sendCmdFlag才会被置为TCP_SEND_GET_DEV_PARAMETER
-        从而进入该分支处理物理参数包,其他模式都是默认模式,只会回复0或1*/
+        /*根据上位机发送给下位机命令的不同，sendCmdFlag会在发送命令时被赋给不同的值，可选值由TcpSendCmdType枚举类型约束。
+         *接收到TCP响应后，数据进入该函数被解析，根据sendCmdFlag的不同，进入不同的分支被解析。分别实现不同的解析函数。
+         *parseDefalutResponse（）处理默认响应（默认响应是指TCP数据部分只回复0或1的响应），其他复杂的响应由各种重载的parseOtherResponse（）函数解析
+         */
         switch (sendCmdFlag) {
             case TCP_SEND_DEFAULT_STATE://默认响应
                 parseDefalutResponse(response);
@@ -588,11 +588,20 @@ void Widget::parseOtherResponse(QByteArray response, devPhysicsParameter *phyPar
 
         ui->logPlainTextEdit->appendPlainText("工作模式: " + QString::number(phyPara->workMode));
         ui->logPlainTextEdit->appendPlainText("板卡电流: " + QString::number(phyPara->current, 'f', 2) + " A");
+        qDebug() << "phyPara->batPercent:"<<phyPara->batPercent;
+        //限定电压的最大最小值，大于最大值
+        if(phyPara->batVol>12.48f)
+        {
+            phyPara->batPercent=100.0f;
+        }else if(phyPara->batVol<10.74f)
+        {
+            phyPara->batPercent=0.0f;
+        }
         ui->logPlainTextEdit->appendPlainText("电池百分比: " + QString::number(phyPara->batPercent) + " %");
         ui->logPlainTextEdit->appendPlainText("电池电压: " + QString::number(phyPara->batVol, 'f', 2) + " V");
         ui->logPlainTextEdit->appendPlainText("板卡温度: " + QString::number(phyPara->temperature, 'f', 2) + " °C");
-//        ui->logPlainTextEdit->appendPlainText("电池电压 (hex): " + QString::number(*reinterpret_cast<uint32_t*>(&phyPara->batVol), 16));
-//        ui->logPlainTextEdit->appendPlainText("板卡温度 (hex): " + QString::number(*reinterpret_cast<uint32_t*>(&phyPara->temperature), 16));
+        ui->logPlainTextEdit->appendPlainText("电池电压 (hex): " + QString::number(*reinterpret_cast<uint32_t*>(&phyPara->batVol), 16));
+        ui->logPlainTextEdit->appendPlainText("板卡温度 (hex): " + QString::number(*reinterpret_cast<uint32_t*>(&phyPara->temperature), 16));
 
         //将物理参数显示在对应的文本框
         ui->BatVolLineEdit->setText(QString::number(phyPara->batVol, 'f', 2) + " V");//显示电池电压
@@ -613,6 +622,8 @@ void Widget::parseOtherResponse(QByteArray response, satelliteInfo *satInfo)
     else
     {
         memcpy(satInfo,response.constData(),sizeof(satelliteInfo));
+
+
         ui->logPlainTextEdit->appendPlainText(getTimestamp()+"获取卫星信息如下:");
 
         ui->logPlainTextEdit->appendPlainText("经度: " + QString::number(satInfo->longitude, 'f', 6));
@@ -933,6 +944,7 @@ void Widget::on_forceUpdateLocBtn_clicked()
 //切换自定义命令页面槽函数
 void Widget::on_userDefCmdBtn_clicked()
 {
+
     int nextIndex = (ui->cmdStackedWidget->currentIndex()+1)%ui->cmdStackedWidget->count();
     //FIXME:此处按键状态判断使用的是硬编码,如果后续在stacked widget中添加新页面,需要修改这里的逻辑
     if(1==nextIndex)

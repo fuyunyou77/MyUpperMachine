@@ -5,6 +5,7 @@
 #include <QString>
 #include <QByteArray>
 #include <QDateTime>
+#include <QtEndian>
 
 // 命令字枚举类型定义
 enum CommandWord : uint8_t {
@@ -99,7 +100,29 @@ typedef struct {
 
 #pragma pack(pop)
 
+/*模板函数，将数据从大端序转换为小端序
+ * input：要转换的数据
+ * return：无
+*/
+//template <typename T>
+//void convertBigEndianField(T& field) {
+//    if constexpr (sizeof(T) == 2) {  // 16位字段（如int16_t）
+//        quint16 raw;
+//        memcpy(&raw, &field, 2);
+//        raw = qFromBigEndian(raw);
+//        memcpy(&field, &raw, 2);
+//    } else if constexpr (sizeof(T) == 4) {  // 32位字段（int32_t/float）
+//        quint32 raw;
+//        memcpy(&raw, &field, 4);
+//        raw = qFromBigEndian(raw);
+//        memcpy(&field, &raw, 4);
+//    }
+//    // 其他长度需扩展
+//}
+
 QString getTimestamp();
 QByteArray buildCmdPktHeader(CommandWord cmd,uint8_t devID);
 QByteArray removeCmdPktHeader(QByteArray response,CmdPacketHeader *header);
+//template <typename T>
+//void convertBigEndianField(T& field);
 #endif // CMDBUILD_H
