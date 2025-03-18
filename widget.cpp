@@ -13,8 +13,11 @@ Widget::Widget(QWidget *parent)
     ui->normalModeBtn->setCheckable(false);
     ui->lowPowerModeBtn->setCheckable(false);
 
+    //设置自定义命令模块的布局
+    SelfDfnCmdArealayout();
 
-    socket = new QTcpSocket;//创建Socket对象
+    //创建Socket对象
+    socket = new QTcpSocket;
 
     //按钮上放上图片
     ui->devStateLitLabel->setPixmap(greyLit.scaled(60,60));
@@ -29,24 +32,6 @@ Widget::Widget(QWidget *parent)
     //连接 socket的连接错误信号 与槽
     connect(socket,static_cast<void (QTcpSocket::*)(QAbstractSocket::SocketError)>(&QTcpSocket::error),this,&Widget::on_serverConnectError);
 
-    //连接输入区大小控制的信号与槽
-    //TODO:要将多个控件与一个相同的槽函数进行绑定,其中槽函数根据传入的参数决定在函数中如何操作
-//    connect(ui->testTextEdit,&QTextEdit::textChanged,this,[this]()
-//    {
-//        adjustTextEditHeight(ui->testTextEdit); // 传递当前控件指针
-//    });
-//    connect(ui->testTextEdit_2,&QTextEdit::textChanged,this,[this]()
-//    {
-//        adjustTextEditHeight(ui->testTextEdit_2); // 传递当前控件指针
-//    });
-//    connect(ui->testTextEdit_3,&QTextEdit::textChanged,this,[this]()
-//    {
-//        adjustTextEditHeight(ui->testTextEdit_3); // 传递当前控件指针
-//    });
-//    connect(ui->testTextEdit_4,&QTextEdit::textChanged,this,[this]()
-//    {
-//        adjustTextEditHeight(ui->testTextEdit_4); // 传递当前控件指针
-//    });
 
     //日志区清空按钮
     connect(ui->logClearBtn,&QPushButton::clicked,[this]()
@@ -67,6 +52,43 @@ Widget::Widget(QWidget *parent)
 Widget::~Widget()
 {
     delete ui;
+}
+
+void Widget::SelfDfnCmdArealayout(void)
+{
+    //创建布局
+    QVBoxLayout *SelfDfnCmdVlayout = new QVBoxLayout(ui->SelfDefineCmdArea);
+    QHBoxLayout *SelfDfnCmdHlayout1 = new QHBoxLayout();
+    QHBoxLayout *SelfDfnCmdHlayout2 = new QHBoxLayout();
+
+    //创建表组件
+    QTableWidget * tableWidget= new QTableWidget(0,2,this);
+
+    tableWidget->setHorizontalHeaderLabels(QStringList()<<"描述"<<"命令");
+    tableWidget->horizontalHeader()->setStretchLastSection(true);
+
+    //创建输入框和按钮
+    QLineEdit *descriptionEdit = new QLineEdit(this);
+    QPushButton *SaveSelfDfnCmdBtn = new QPushButton("保存", this);
+    //将保存按键和输入栏放入水平布局1中
+    SelfDfnCmdHlayout1->addWidget(descriptionEdit);
+    SelfDfnCmdHlayout1->addWidget(SaveSelfDfnCmdBtn);
+
+    //创建发送和清除按钮
+    QPushButton *SendSefDfnCmdBtn = new QPushButton("发送选中命令", this);
+    QPushButton *ClearSelfDfnCmdBtn=new QPushButton("清除选中命令", this);
+
+    //将发送和清除按钮放入水平布局2中
+    SelfDfnCmdHlayout2->addWidget(SendSefDfnCmdBtn);
+    SelfDfnCmdHlayout2->addWidget(ClearSelfDfnCmdBtn);
+
+    // 将命令表和两个水平布局添加到垂直布局中
+    SelfDfnCmdVlayout->addWidget(tableWidget);
+    SelfDfnCmdVlayout->addLayout(SelfDfnCmdHlayout1);
+    SelfDfnCmdVlayout->addLayout(SelfDfnCmdHlayout2);
+
+    // 设置垂直布局
+    setLayout(SelfDfnCmdVlayout);
 }
 
 /*@brief：设置普通模式按钮槽函数：1.发送“正常模式设置命令”
@@ -1009,35 +1031,35 @@ void Widget::on_userDefCmdBtn_clicked()
 }
 
 //调整文本输入框大小槽函数
-void Widget::adjustTextEditHeight(QTextEdit *senderEdit) {
-    // 确保文档布局更新（计算准确高度）
-    senderEdit->document()->documentLayout()->update();
+//void Widget::adjustTextEditHeight(QTextEdit *senderEdit) {
+//    // 确保文档布局更新（计算准确高度）
+//    senderEdit->document()->documentLayout()->update();
 
-    // 参数定义
-    const int lineHeight = senderEdit->fontMetrics().lineSpacing();
-    const int margin = senderEdit->contentsMargins().top() + senderEdit->contentsMargins().bottom();
-    const int maxHeight = 6 * lineHeight + margin; // 最大高度为6行（根据需求调整）
+//    // 参数定义
+//    const int lineHeight = senderEdit->fontMetrics().lineSpacing();
+//    const int margin = senderEdit->contentsMargins().top() + senderEdit->contentsMargins().bottom();
+//    const int maxHeight = 6 * lineHeight + margin; // 最大高度为6行（根据需求调整）
 
-    // 计算理想高度
-    int docHeight = senderEdit->document()->size().height();
-    int desiredHeight = qMax(lineHeight + margin, qMin(docHeight + margin, maxHeight));
+//    // 计算理想高度
+//    int docHeight = senderEdit->document()->size().height();
+//    int desiredHeight = qMax(lineHeight + margin, qMin(docHeight + margin, maxHeight));
 
-    // 动态调整高度和滚动条
-    if (desiredHeight < maxHeight) {
-        senderEdit->setFixedHeight(desiredHeight);
-        senderEdit->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff); // 隐藏滚动条
-    } else {
-        senderEdit->setFixedHeight(maxHeight);
-        senderEdit->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded); // 按需显示滚动条
-    }
+//    // 动态调整高度和滚动条
+//    if (desiredHeight < maxHeight) {
+//        senderEdit->setFixedHeight(desiredHeight);
+//        senderEdit->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff); // 隐藏滚动条
+//    } else {
+//        senderEdit->setFixedHeight(maxHeight);
+//        senderEdit->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded); // 按需显示滚动条
+//    }
 
-    // 强制滚动到光标位置
-    QTimer::singleShot(0, senderEdit, [senderEdit]() {
-        senderEdit->ensureCursorVisible();
-    });
+//    // 强制滚动到光标位置
+//    QTimer::singleShot(0, senderEdit, [senderEdit]() {
+//        senderEdit->ensureCursorVisible();
+//    });
 
-    // 更新父布局（防止控件重叠）
-    if (QWidget *parent = senderEdit->parentWidget()) {
-        parent->updateGeometry();
-    }
-}
+//    // 更新父布局（防止控件重叠）
+//    if (QWidget *parent = senderEdit->parentWidget()) {
+//        parent->updateGeometry();
+//    }
+//}

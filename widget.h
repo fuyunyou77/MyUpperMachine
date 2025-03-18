@@ -13,8 +13,14 @@
 #include <QRegularExpression>
 #include <QTextEdit>
 #include <QPlainTextEdit>
+#include <QTableWidget>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QSettings>
 #include <QTimer>
+#include <QVBoxLayout>
 #include <QFile>
+#include <QHeaderView>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
@@ -103,7 +109,7 @@ private slots:
 
     void on_userDefCmdBtn_clicked();//切换为用户自定义按键页面
 
-    void adjustTextEditHeight(QTextEdit *edit);//调整文本输入框大小
+//    void adjustTextEditHeight(QTextEdit *edit);//调整文本输入框大小
 
 private:
     Ui::Widget *ui;
@@ -129,6 +135,10 @@ private:
     softwareVersion sfVersion;//软件版本结构体
     devWorkParameter devWorkParam;//设备工作参数结构体
 
+    /***********ui布局函数************/
+    void SelfDfnCmdArealayout(void);
+
+    /***********逻辑控制函数************/
     //处理不同的命令对应的数据包
     //处理默认数据包，数据部分只有0或1的数据TCP response被称为默认数据包，可以统一处理
     void parseDefalutResponse(QByteArray response);
