@@ -100,9 +100,9 @@ typedef struct {
 
 #pragma pack(pop)
 
-/*模板函数，将数据从大端序转换为小端序
- * input：要转换的数据
- * return：无
+/* brief：模板函数，将数据从大端序转换为小端序
+ * param：要转换的数据
+ * retval：无
 */
 //template <typename T>
 //void convertBigEndianField(T& field) {

@@ -13,8 +13,6 @@ Widget::Widget(QWidget *parent)
     ui->normalModeBtn->setCheckable(false);
     ui->lowPowerModeBtn->setCheckable(false);
 
-    //设置自定义命令输入框的高度
-//    ui->testTextEdit->setFixedHeight()
 
     socket = new QTcpSocket;//创建Socket对象
 
@@ -22,33 +20,33 @@ Widget::Widget(QWidget *parent)
     ui->devStateLitLabel->setPixmap(greyLit.scaled(60,60));
     ui->netStateLitLabel ->setPixmap(greyLit.scaled(60,60));
 
-    //连接socket的连接成功信号与槽
+    //连接 socket的连接成功信号 与槽
     connect(socket,&QTcpSocket::connected,this,&Widget::on_serverConnectted);
-    //连接socket的断开连接信号与槽
+    //连接 socket的断开连接信号 与槽
     connect(socket,&QTcpSocket::disconnected,this,&Widget::on_serverDisconnectted);
-    //连接socket接收数据信号与槽，如果板卡有回复信息，则触发on_socketReadyRead函数
+    //连接 socket接收数据信号 与槽，如果板卡有回复信息，则触发on_socketReadyRead函数
     connect(socket, &QTcpSocket::readyRead, this, &Widget::on_socketReadyRead);
-    //连接socket的连接错误信号与槽
+    //连接 socket的连接错误信号 与槽
     connect(socket,static_cast<void (QTcpSocket::*)(QAbstractSocket::SocketError)>(&QTcpSocket::error),this,&Widget::on_serverConnectError);
 
     //连接输入区大小控制的信号与槽
     //TODO:要将多个控件与一个相同的槽函数进行绑定,其中槽函数根据传入的参数决定在函数中如何操作
-    connect(ui->testTextEdit,&QTextEdit::textChanged,this,[this]()
-    {
-        adjustTextEditHeight(ui->testTextEdit); // 传递当前控件指针
-    });
-    connect(ui->testTextEdit_2,&QTextEdit::textChanged,this,[this]()
-    {
-        adjustTextEditHeight(ui->testTextEdit_2); // 传递当前控件指针
-    });
-    connect(ui->testTextEdit_3,&QTextEdit::textChanged,this,[this]()
-    {
-        adjustTextEditHeight(ui->testTextEdit_3); // 传递当前控件指针
-    });
-    connect(ui->testTextEdit_4,&QTextEdit::textChanged,this,[this]()
-    {
-        adjustTextEditHeight(ui->testTextEdit_4); // 传递当前控件指针
-    });
+//    connect(ui->testTextEdit,&QTextEdit::textChanged,this,[this]()
+//    {
+//        adjustTextEditHeight(ui->testTextEdit); // 传递当前控件指针
+//    });
+//    connect(ui->testTextEdit_2,&QTextEdit::textChanged,this,[this]()
+//    {
+//        adjustTextEditHeight(ui->testTextEdit_2); // 传递当前控件指针
+//    });
+//    connect(ui->testTextEdit_3,&QTextEdit::textChanged,this,[this]()
+//    {
+//        adjustTextEditHeight(ui->testTextEdit_3); // 传递当前控件指针
+//    });
+//    connect(ui->testTextEdit_4,&QTextEdit::textChanged,this,[this]()
+//    {
+//        adjustTextEditHeight(ui->testTextEdit_4); // 传递当前控件指针
+//    });
 
     //日志区清空按钮
     connect(ui->logClearBtn,&QPushButton::clicked,[this]()
@@ -61,6 +59,9 @@ Widget::Widget(QWidget *parent)
         ui->sendTextEdit->clear();//清空发送区
     });
 
+/*还有许多按钮等widget没有被显式的连接相应的信号与槽，原因是定义了符合qt规则的标准槽函数
+ * qt会直接将这些按钮的信号与槽函数默认隐式绑定，如果再显示的绑定反而会使信号重复触发
+*/
 }
 
 Widget::~Widget()
@@ -68,6 +69,11 @@ Widget::~Widget()
     delete ui;
 }
 
+/*@brief：设置普通模式按钮槽函数：1.发送“正常模式设置命令”
+ * 2.更新标志量
+ *@param ：无
+ *@retval：无
+*/
 void Widget::on_normalModeBtn_clicked()
 {
     if(socket->state()==QAbstractSocket::UnconnectedState)
@@ -86,13 +92,10 @@ void Widget::on_normalModeBtn_clicked()
             return;
         }
 
-        //更改标志量设置
-        devStateSet=NORMAL_MODE;
-        sendCmdFlag=TCP_SEND_DEFAULT_STATE;
-        changeWorkModeFlag=true;
-
+        //定义要发送的数据包
         QByteArray packet;
 
+        //开始构造数据包
         packet.append(buildCmdPktHeader(CMD_SET_WORK_MODE,devID));
         // 包总长度（4字节，包头12B + 数据1B = 13 → 0x0D）
         uint32_t totalLength = 13;
@@ -106,10 +109,20 @@ void Widget::on_normalModeBtn_clicked()
             ui->logPlainTextEdit->appendPlainText(getTimestamp() + "发送失败: " + socket->errorString());
         } else {
             ui->logPlainTextEdit->appendPlainText(getTimestamp() + "设置为正常工作模式...");
+            //发送成功，更改相应的标志量设置
+            devStateSet=NORMAL_MODE;
+            sendCmdFlag=TCP_SEND_DEFAULT_STATE;
+            changeWorkModeFlag=true;
         }
     }
 }
 
+/*@brief：设置低功耗模式按钮槽函数：
+ * 1.发送“低功耗模式设置命令”
+ * 2.更新标志量
+ *@param ：无
+ *@retval：无
+*/
 void Widget::on_lowPowerModeBtn_clicked()
 {
 
@@ -128,10 +141,6 @@ void Widget::on_lowPowerModeBtn_clicked()
             QMessageBox::information(this,"注意","请勿重复操作!");
             return;
         }
-        //更改标志量设置
-        devStateSet=LOW_POWER_MODE;
-        sendCmdFlag=TCP_SEND_DEFAULT_STATE;
-        changeWorkModeFlag=true;
 
         QByteArray packet;
         packet.append(buildCmdPktHeader(CMD_SET_WORK_MODE,devID));
@@ -147,10 +156,21 @@ void Widget::on_lowPowerModeBtn_clicked()
             ui->logPlainTextEdit->appendPlainText(getTimestamp() + "发送失败: " + socket->errorString());
         } else {
             ui->logPlainTextEdit->appendPlainText(getTimestamp() + "设置为低功耗模式...");
+            //更改标志量设置
+            devStateSet=LOW_POWER_MODE;
+            sendCmdFlag=TCP_SEND_DEFAULT_STATE;
+            changeWorkModeFlag=true;
         }
     }
 }
 
+/*@brief：连接下位机按钮槽函数：
+ * 1.判断输入的IP，端口号等内容是否合法
+ * 2.建立与下位机的TCP连接
+ * 2.更新标志量
+ *@param ：无
+ *@retval：无
+*/
 void Widget::on_connectBtn_clicked()
 {
     //从输入框获取ip地址和端口
@@ -368,6 +388,12 @@ bool Widget::isValidSubnetMask(const QString &input)
     return (inverted & (inverted - 1)) == 0;
 }
 
+/*@brief：下位机断开连接按钮槽函数：
+ * 1.如果已连接下位机，断开与下位机的TCP连接
+ * 2.如果正在尝试连接下位机，终止正在进行的连接操作
+ *@param ：无
+ *@retval：无
+*/
 void Widget::on_disconnectBtn_clicked()
 {  
     QAbstractSocket::SocketState state=socket->state();
@@ -390,6 +416,14 @@ void Widget::on_disconnectBtn_clicked()
     }
 }
 
+/*@brief：下位机连接成功信号对应的槽函数：
+ * 1.更新按钮的checked状态
+ * 2.更新指示灯状态
+ * 3.打印日志
+ * 4.将子网掩码显示到对应位置
+ *@param ：无
+ *@retval：无
+*/
 void Widget::on_serverConnectted()
 {
     ui->normalModeBtn->setCheckable(true);
@@ -409,6 +443,13 @@ void Widget::on_serverConnectted()
     ui->logPlainTextEdit->appendPlainText(logText);
 }
 
+/*@brief：下位机断开连接信号对应的槽函数：
+ * 1.更新按钮的checked状态
+ * 2.更新指示灯状态
+ * 3.打印日志
+ *@param ：无
+ *@retval：无
+*/
 void Widget::on_serverDisconnectted()
 {
     ui->normalModeBtn->setChecked(false);
@@ -424,7 +465,11 @@ void Widget::on_serverDisconnectted()
     ui->logPlainTextEdit->appendPlainText(logText);
 }
 
-//TODO:
+/*@brief：下位机连接错误信号对应的槽函数：
+ * 1.弹窗警告并打印错误日志
+ *@param ：无
+ *@retval：无
+*/
 void Widget::on_serverConnectError()
 {
     QMessageBox::information(this,"警告","TCP连接错误!");
@@ -433,6 +478,12 @@ void Widget::on_serverConnectError()
     ui->logPlainTextEdit->appendPlainText(getTimestamp()+"socketError:"+errorDescription);
 }
 
+/*@brief：接收原始TCP数据包的槽函数：
+ * 1.在日志中打印原始的tcp数据包内容（hex）
+ * 2.处理数据包，并分发给相应的解析函数解析内容
+ *@param ：无
+ *@retval：无
+*/
 void Widget::on_socketReadyRead()
 {
     QByteArray response = socket->readAll();
@@ -570,7 +621,6 @@ void Widget::parseDefalutResponse(QByteArray response)
 }
 
 //实现接收数据包解析,将结构体指针与数据包对齐
-//TODO:根据协议规定,计算物理参数,浮点数转换有误,原因未知
 void Widget::parseOtherResponse(QByteArray response, devPhysicsParameter *phyPara)
 {
     if(response.size()< static_cast<int>(sizeof(devPhysicsParameter)))
@@ -729,7 +779,7 @@ void Widget::on_sendBtn_clicked()
         QString sendText = ui->sendTextEdit->toPlainText().remove(' ');
 
         //判断要发送的字符串是否非法
-        if(isStringInvalid(sendText))
+        if(1==isStringInvalid(sendText))
         {
             return;
         }
@@ -791,7 +841,7 @@ void Widget::on_sendBtn_clicked()
     }
 }
 
-//判断字符串是否有效
+//判断字符串是否非法
 bool Widget::isStringInvalid(QString sendText)
 {
     if(sendText.isEmpty())
@@ -906,35 +956,35 @@ QByteArray removeCmdPktHeader(QByteArray response,CmdPacketHeader *header)
     return response;
 }
 
-//获取设备物理参数信息按键槽函数
+//“获取设备物理参数信息”命令按钮槽函数
 void Widget::on_getDevPhyParaBtn_clicked()
 {
     ui->sendTextEdit->clear();
     ui->sendTextEdit->setText("ca ff");
 }
 
-//获取设备卫星信息按键槽函数
+//“获取设备卫星信息”命令按钮槽函数
 void Widget::on_getSateInfoBtn_clicked()
 {
     ui->sendTextEdit->clear();
     ui->sendTextEdit->setText("c6 ff");
 }
 
-//查询设备状态槽函数
+//“查询设备状态命令”按钮槽函数
 void Widget::on_getDevStateBtn_clicked()
 {
     ui->sendTextEdit->clear();
     ui->sendTextEdit->setText("c7 ff");
 }
 
-//查询设备工作参数槽函数
+//发送“查询设备工作参数”命令按钮槽函数
 void Widget::on_getDevWorkParaBtn_clicked()
 {
     ui->sendTextEdit->clear();
     ui->sendTextEdit->setText("c5 ff");
 }
 
-//强制更新位置槽函数
+//发送“强制更新位置”命令按钮槽函数
 void Widget::on_forceUpdateLocBtn_clicked()
 {
     ui->sendTextEdit->clear();
@@ -944,9 +994,8 @@ void Widget::on_forceUpdateLocBtn_clicked()
 //切换自定义命令页面槽函数
 void Widget::on_userDefCmdBtn_clicked()
 {
+    int nextIndex = (ui->cmdStackedWidget->currentIndex()+1)%ui->cmdStackedWidget->count();//FIXME:此处按键状态判断使用的是硬编码,如果后续在stacked widget中添加新页面,需要修改这里的逻辑
 
-    int nextIndex = (ui->cmdStackedWidget->currentIndex()+1)%ui->cmdStackedWidget->count();
-    //FIXME:此处按键状态判断使用的是硬编码,如果后续在stacked widget中添加新页面,需要修改这里的逻辑
     if(1==nextIndex)
     {
         ui->userDefCmdBtn->setCheckable(true);

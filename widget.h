@@ -14,6 +14,10 @@
 #include <QTextEdit>
 #include <QPlainTextEdit>
 #include <QTimer>
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QJsonObject>
 #include "cmdBuild.h"
 
 #define CMD_PORT 21079//命令端口
@@ -56,10 +60,11 @@ enum TcpSendCmdType : uint8_t{
     TCP_SEND_SET_DEV_WORKMODE=0xF1//设置设备工作模式
 };
 
+//定义设备工作模式
 enum WorkMode : uint8_t {
-    NORMAL_MODE=0x00,
-    LOW_POWER_MODE=0x01,
-    UNKNOWN_MODE=0xFF
+    NORMAL_MODE=0x00,//正常工作模式
+    LOW_POWER_MODE=0x01,//低功耗模式
+    UNKNOWN_MODE=0xFF//位置模式
 };
 
 QT_BEGIN_NAMESPACE
@@ -113,34 +118,39 @@ private:
     //TODO:设备模式从设备获取更安全,设备出现故障一上电就是低功耗模式,那么这个预设就是有问题的
     WorkMode devStateSet=NORMAL_MODE;//设备上电是正常工作模式
     bool changeWorkModeFlag=false;
+
     //该值用来记录tcp发出的命令，在tcp数据接受函数中使用该标志量决定调用什么函数处理回复的消息
     TcpSendCmdType sendCmdFlag=TCP_UNANSWER_STATE;
 
-    devPhysicsParameter phyPara;
-    satelliteInfo sateInfo;
-    devState devSta;
-    softwareVersion sfVersion;
-    devWorkParameter devWorkParam;
+    //定义各种结构体用来存储和解析下位机数据包内容
+    devPhysicsParameter phyPara;//设备物理参数结构体
+    satelliteInfo sateInfo;//卫星信息结构体
+    devState devSta;//设备状态结构体
+    softwareVersion sfVersion;//软件版本结构体
+    devWorkParameter devWorkParam;//设备工作参数结构体
 
+    //处理不同的命令对应的数据包
+    //处理默认数据包，数据部分只有0或1的数据TCP response被称为默认数据包，可以统一处理
     void parseDefalutResponse(QByteArray response);
-    //重载以处理不同的数据包
+    //重载以处理其他数据部分不同的数据包，与不同的结构体相对应
     void parseOtherResponse(QByteArray response,devPhysicsParameter *phyPara);
     void parseOtherResponse(QByteArray response,satelliteInfo *sateInfo);
     void parseOtherResponse(QByteArray response,devState *devSta);
     void parseOtherResponse(QByteArray response,softwareVersion *sfVersion);
     void parseOtherResponse(QByteArray response,devWorkParameter *devWorkParam);
-    TcpSendCmdType CmdTcpType(uint8_t cmdHeader);
-    bool isStringInvalid(QString sendText);
+
+    TcpSendCmdType CmdTcpType(uint8_t cmdHeader);//判断发出的数据包的类型，与不同的命令相对应
+    bool isStringInvalid(QString sendText);//判断作为TCP命令被发送的字符串是否非法
 
     //进行TCP连接前相关输入的检查
     //bool isIPv4Address(const QString &ip);//宽松的ipv4检查
     bool isIPv4AddressEx(const QString &ip,//FIXME:严格的ipv4检查(对于整个网段的ip无法判断)
-                        IPv4ValidationFlags flags,
+                        IPv4ValidationFlags flags,//给出不同的IPv4ValidationFlag枚举类型的组合，以允许不同的ip
                         quint32 network ,       // 网络地址（需配合掩码使用）
                         quint32 mask); // 子网掩码（默认不检查网络地址）
-    bool isPortValid(const QString &port, bool allowZero);
-    bool isDevIDValid(const QString &devID);
-    bool isValidSubnetMask(const QString &input);
+    bool isPortValid(const QString &port, bool allowZero);//判断端口号是否合法
+    bool isDevIDValid(const QString &devID);//判断设备id是否合法
+    bool isValidSubnetMask(const QString &input);//判断子网掩码是否合法
 };
 
 #endif // WIDGET_H
