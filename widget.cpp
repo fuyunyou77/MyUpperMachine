@@ -42,7 +42,7 @@ Widget::Widget(QWidget *parent)
 
     connect(&timer, &QTimer::timeout,this,&Widget::get_devPhyParam_timeout);
 
-    qDebug()<<ui->setLowPowMessFreqLineEdit->text();
+    qDebug()<<"setLowPowMessFreq from lineedit :"<<ui->setLowPowMessFreqLineEdit->text();
 /*还有许多按钮等widget没有被显式的连接相应的信号与槽，原因是定义了符合qt规则的标准槽函数
  * qt会直接将这些按钮的信号与槽函数默认隐式绑定，如果再显示的绑定反而会使信号重复触发
 */
@@ -77,10 +77,11 @@ void Widget::uiInit()
 
     }
 
+    //label上放上图片
+    ui->devStateLitLabel->setPixmap(greyLit.scaled(60,60));//设备状态
+    ui->netStateLitLabel ->setPixmap(greyLit.scaled(60,60));//网络状态
+    ui->batStateLitLabel ->setPixmap(greyLit.scaled(60,60));//电量状态
 
-    //按钮上放上图片
-    ui->devStateLitLabel->setPixmap(greyLit.scaled(60,60));
-    ui->netStateLitLabel ->setPixmap(greyLit.scaled(60,60));
 }
 
 
