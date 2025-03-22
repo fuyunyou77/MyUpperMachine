@@ -68,8 +68,9 @@ enum TcpSendCmdType : uint8_t{
 
 //定义设备工作模式
 enum WorkMode : uint8_t {
-    NORMAL_MODE=0x02,//正常工作模式
+    NORMAL_MODE=0x00,//正常工作模式
     LOW_POWER_MODE=0x01,//低功耗模式
+    DATA_CONLLECT_START_MODE=0x02,//数采启动中
     UNKNOWN_MODE=0xFF//未知模式
 };
 

@@ -146,7 +146,8 @@ void Widget::on_normalModeBtn_clicked()
         uint32_t totalLength = 13;
         packet.append(reinterpret_cast<char*>(&totalLength), 4);
         // 数据内容（1字节）
-        packet.append(static_cast<char>(NORMAL_MODE));
+//        packet.append(static_cast<char>(NORMAL_MODE));
+        packet.append(static_cast<char>(0x00));//00为正常模式
 
         //将数据通过tcp发出,根据返回值打印日志信息
         qint64 bytesWritten = socket->write(packet);
@@ -209,7 +210,8 @@ void Widget::on_lowPowerModeBtn_clicked()
         uint32_t totalLength = 13;
         packet.append(reinterpret_cast<char*>(&totalLength), 4);
         // 数据内容（1字节）
-        packet.append(static_cast<char>(LOW_POWER_MODE));
+//        packet.append(static_cast<char>(LOW_POWER_MODE));
+        packet.append(static_cast<char>(0x01));//01为低功耗模式
 
         //将数据通过tcp发出,根据返回值打印日志信息
         qint64 bytesWritten = socket->write(packet);
