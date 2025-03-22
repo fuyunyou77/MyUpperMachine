@@ -74,7 +74,7 @@ void Widget::uiInit()
         QMessageBox::warning(this,"警告","config.json创建失败,请手动添加!");
 
     }
-    //TODO:读取一次设备物理参数以初始化灯和设备状态
+
 
     //按钮上放上图片
     ui->devStateLitLabel->setPixmap(greyLit.scaled(60,60));
@@ -491,21 +491,41 @@ void Widget::on_disconnectBtn_clicked()
 */
 void Widget::on_serverConnectted()
 {
-    ui->normalModeBtn->setCheckable(true);
-    ui->lowPowerModeBtn->setCheckable(true);
-    ui->normalModeBtn->setChecked(true);
+//    ui->normalModeBtn->setCheckable(true);
+//    ui->lowPowerModeBtn->setCheckable(true);
+//    ui->normalModeBtn->setChecked(true);
+//    ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//初始连接板卡时，板卡一定为正常模式，设备状态显示绿灯
 
     ui->netStateLitLabel ->setPixmap(yellowLit.scaled(60,60));//设置指示灯为黄色常亮,表示连接
-    ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//初始连接板卡时，板卡一定为正常模式，设备状态显示绿灯
-    //TODO:TCP连接成功后自动发起一次获取设备物理参数请求,获取其设备状态用于其他各项信息显示
 
-    //TODO:掩码需要可以自定义,此处实现需要修改
-    ui->MaskLineEdit->setText(mask);//在掩码位置显示掩码
 
     //在日志栏打印信息
     QString logText=getTimestamp();
     logText.append("下位机连接成功!------>["+ui->IPLineEdit->text()+":"+ui->PortLineEdit->text()+"]");
     ui->logPlainTextEdit->appendPlainText(logText);
+
+    //TODO:TCP连接成功后自动发起一次获取设备物理参数请求,获取其设备状态用于其他各项信息显示
+    QByteArray packet;
+    packet.append(buildCmdPktHeader(CMD_GET_DEV_PHY_PARAMETERS,devID));
+    // 包总长度（4字节，包头12B + 数据1B = 13 → 0x0D）
+    uint32_t totalLength = 13;
+    packet.append(reinterpret_cast<char*>(&totalLength), 4);
+    // 数据内容（1字节）
+    packet.append(0xff);
+    qDebug()<<"packet:"<<hexToFormatStr(packet);
+    qint64 bytesWritten =socket->write(packet);
+    sendCmdFlag=TCP_SEND_GET_PHY_PARAMETER;
+    if (bytesWritten == -1)
+    {
+        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "获取设备初始物理参数失败：" + socket->errorString());
+        sendCmdFlag=TCP_UNANSWER_STATE;
+    }
+    else
+    {
+        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "获取设备初始物理参数成功！" );
+    }
+    //TODO:掩码需要可以自定义,此处实现需要修改
+    ui->MaskLineEdit->setText(mask);//在掩码位置显示掩码
 }
 
 /**
@@ -524,6 +544,8 @@ void Widget::on_serverDisconnectted()
     ui->lowPowerModeBtn->setCheckable(false);
     ui->netStateLitLabel ->setPixmap(greyLit.scaled(60,60));//设置网络状态指示灯为灰色,表示断开连接
     ui->devStateLitLabel ->setPixmap(greyLit.scaled(60,60));//设置设备状态指示灯为灰色,表示断开连接
+
+    //TODO：下位机断开连接，相关的标志量要全部清空
 
     //打印日志
     QString logText=getTimestamp();
@@ -629,7 +651,9 @@ void Widget::parseDefalutResponse(QByteArray response)
     QString logText = getTimestamp();
 
     switch (tcpRespond) {
+
     case 0:
+    case 2:
         logText += "设置成功!";
         if(NORMAL_MODE==devStateSet)//正常工作模式设置成功
         {
@@ -680,31 +704,31 @@ void Widget::parseDefalutResponse(QByteArray response)
         }
         //TODO:设备状态设置成功时,状态可知,可是没有一个参数用来表示设备当前的工作状态
         break;
-    case 2:
-        logText += "数采启动中,请稍后操作...";
-        if(NORMAL_MODE==devStateSet)//正常模式设置失败
-        {
-            if(true==changeWorkModeFlag)
-            {
-                ui->devStateLitLabel->setPixmap(yellowLit.scaled(60,60));//设备状态指示灯变为黄色
-                ui->normalModeBtn->setChecked(false);
-                ui->lowPowerModeBtn->setChecked(true);
-                changeWorkModeFlag=false;
-                devStateSet=LOW_POWER_MODE;
-            }
-        }
-        else if(LOW_POWER_MODE==devStateSet)//低功耗模式设置失败
-        {
-            if(true==changeWorkModeFlag)
-            {
-                ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//设备状态指示灯变为绿色
-                ui->normalModeBtn->setChecked(true);
-                ui->lowPowerModeBtn->setChecked(false);
-                changeWorkModeFlag=false;
-                devStateSet=NORMAL_MODE;
-            }
-        }
-        break;
+//    case 2:
+//        logText += "数采启动中,请稍后操作...";
+//        if(NORMAL_MODE==devStateSet)//正常模式设置失败
+//        {
+//            if(true==changeWorkModeFlag)
+//            {
+//                ui->devStateLitLabel->setPixmap(yellowLit.scaled(60,60));//设备状态指示灯变为黄色
+//                ui->normalModeBtn->setChecked(false);
+//                ui->lowPowerModeBtn->setChecked(true);
+//                changeWorkModeFlag=false;
+//                devStateSet=LOW_POWER_MODE;
+//            }
+//        }
+//        else if(LOW_POWER_MODE==devStateSet)//低功耗模式设置失败
+//        {
+//            if(true==changeWorkModeFlag)
+//            {
+//                ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//设备状态指示灯变为绿色
+//                ui->normalModeBtn->setChecked(true);
+//                ui->lowPowerModeBtn->setChecked(false);
+//                changeWorkModeFlag=false;
+//                devStateSet=NORMAL_MODE;
+//            }
+//        }
+//        break;
     default:
         logText += "未知响应!";
         break;
@@ -762,6 +786,22 @@ void Widget::parseOtherResponse(QByteArray response, devPhysicsParameter *phyPar
         }
         ui->CurrentLineEdit->setText(QString::number(phyPara->current, 'f', 2) + " A");//显示板卡电流
         ui->TemperLineEdit->setText(QString::number(phyPara->temperature, 'f', 2) + " °C");//显示板卡温度
+
+        ui->normalModeBtn->setCheckable(true);
+        ui->lowPowerModeBtn->setCheckable(true);
+        if(NORMAL_MODE==phyPara->workMode)
+        {
+            ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//设备状态指示灯变为绿色
+            ui->normalModeBtn->setChecked(true);
+            ui->lowPowerModeBtn->setChecked(false);
+        }
+        else if(LOW_POWER_MODE==phyPara->workMode)
+        {
+            ui->devStateLitLabel->setPixmap(yellowLit.scaled(60,60));//设备状态指示灯变为绿色
+            ui->normalModeBtn->setChecked(false);
+            ui->lowPowerModeBtn->setChecked(true);
+        }
+
     }
 
 }
