@@ -9,19 +9,11 @@ Widget::Widget(QWidget *parent)
     , yellowLit(":/icon/yellow_light.png")
 {
     ui->setupUi(this);
-    //设置模式控制按钮的选中状态
-    ui->normalModeBtn->setCheckable(false);
-    ui->lowPowerModeBtn->setCheckable(false);
 
-    //设置自定义命令模块的布局
-    SelfDfnCmdArealayout();
+    uiInit();//调用初始化函数初始化ui
 
     //创建Socket对象
     socket = new QTcpSocket;
-
-    //按钮上放上图片
-    ui->devStateLitLabel->setPixmap(greyLit.scaled(60,60));
-    ui->netStateLitLabel ->setPixmap(greyLit.scaled(60,60));
 
     //连接 socket的连接成功信号 与槽
     connect(socket,&QTcpSocket::connected,this,&Widget::on_serverConnectted);
@@ -31,7 +23,6 @@ Widget::Widget(QWidget *parent)
     connect(socket, &QTcpSocket::readyRead, this, &Widget::on_socketReadyRead);
     //连接 socket的连接错误信号 与槽
     connect(socket,static_cast<void (QTcpSocket::*)(QAbstractSocket::SocketError)>(&QTcpSocket::error),this,&Widget::on_serverConnectError);
-
 
     //日志区清空按钮
     connect(ui->logClearBtn,&QPushButton::clicked,[this]()
@@ -44,6 +35,12 @@ Widget::Widget(QWidget *parent)
         ui->sendTextEdit->clear();//清空发送区
     });
 
+    connect(sendSelfDfnCmdBtn,&QPushButton::clicked,this,&Widget::sendSelfDfnCmdBtn_clicked);
+    connect(saveSelfDfnCmdBtn,&QPushButton::clicked,this,&Widget::saveSelfDfnCmdBtn_clicked);
+    connect(clearSelfDfnCmdBtn,&QPushButton::clicked,this,&Widget::clearSelfDfnCmdBtn_clicked);
+    connect(addSelfDfnCmdBtn,&QPushButton::clicked,this,&Widget::addSelfDfnCmdBtn_clicked);
+
+    qDebug()<<ui->setLowPowMessFreqLineEdit->text();
 /*还有许多按钮等widget没有被显式的连接相应的信号与槽，原因是定义了符合qt规则的标准槽函数
  * qt会直接将这些按钮的信号与槽函数默认隐式绑定，如果再显示的绑定反而会使信号重复触发
 */
@@ -54,44 +51,70 @@ Widget::~Widget()
     delete ui;
 }
 
+void Widget::uiInit()
+{
+    //设置模式控制按钮的选中状态
+    ui->normalModeBtn->setCheckable(false);
+    ui->lowPowerModeBtn->setCheckable(false);
+
+    //设置自定义命令模块的布局
+    SelfDfnCmdArealayout();
+
+    //初始化json文件
+    if(true==initJson())
+    {
+
+        //将预设值填入ui对应栏位
+        ui->setVolThresholdBtnLineEdit->setText(QString::number( readFromJson("VolThreshold")));
+        ui->setNormalMessFreqLineEdit->setText(QString::number( readFromJson("NormalMessFreq")));
+        ui->setLowPowMessFreqLineEdit->setText(QString::number( readFromJson("LowPowMessFreq")));
+    }
+    else
+    {
+        QMessageBox::warning(this,"警告","config.json创建失败,请手动添加!");
+
+    }
+    //TODO:读取一次设备物理参数以初始化灯和设备状态
+
+    //按钮上放上图片
+    ui->devStateLitLabel->setPixmap(greyLit.scaled(60,60));
+    ui->netStateLitLabel ->setPixmap(greyLit.scaled(60,60));
+}
+
+
 void Widget::SelfDfnCmdArealayout(void)
 {
+
     //创建布局
-    QVBoxLayout *SelfDfnCmdVlayout = new QVBoxLayout(ui->SelfDefineCmdArea);
-    QHBoxLayout *SelfDfnCmdHlayout1 = new QHBoxLayout();
-    QHBoxLayout *SelfDfnCmdHlayout2 = new QHBoxLayout();
+    QVBoxLayout *selfDfnCmdVlayout = new QVBoxLayout(ui->SelfDefineCmdArea);
+    QHBoxLayout *selfDfnCmdHlayout1 = new QHBoxLayout();
+    QHBoxLayout *selfDfnCmdHlayout2 = new QHBoxLayout();
 
-    //创建表组件
-    QTableWidget * tableWidget= new QTableWidget(0,2,this);
-
+    //设置表头
     tableWidget->setHorizontalHeaderLabels(QStringList()<<"描述"<<"命令");
     tableWidget->horizontalHeader()->setStretchLastSection(true);
 
-    //创建输入框和按钮
-    QLineEdit *descriptionEdit = new QLineEdit(this);
-    QPushButton *SaveSelfDfnCmdBtn = new QPushButton("保存", this);
     //将保存按键和输入栏放入水平布局1中
-    SelfDfnCmdHlayout1->addWidget(descriptionEdit);
-    SelfDfnCmdHlayout1->addWidget(SaveSelfDfnCmdBtn);
-
-    //创建发送和清除按钮
-    QPushButton *SendSefDfnCmdBtn = new QPushButton("发送选中命令", this);
-    QPushButton *ClearSelfDfnCmdBtn=new QPushButton("清除选中命令", this);
+    selfDfnCmdHlayout1->addWidget(descriptionEdit);
+    selfDfnCmdHlayout1->addWidget(saveSelfDfnCmdBtn);
+    selfDfnCmdHlayout1->addWidget(addSelfDfnCmdBtn);
 
     //将发送和清除按钮放入水平布局2中
-    SelfDfnCmdHlayout2->addWidget(SendSefDfnCmdBtn);
-    SelfDfnCmdHlayout2->addWidget(ClearSelfDfnCmdBtn);
+    selfDfnCmdHlayout2->addWidget(sendSelfDfnCmdBtn);
+    selfDfnCmdHlayout2->addWidget(clearSelfDfnCmdBtn);
 
     // 将命令表和两个水平布局添加到垂直布局中
-    SelfDfnCmdVlayout->addWidget(tableWidget);
-    SelfDfnCmdVlayout->addLayout(SelfDfnCmdHlayout1);
-    SelfDfnCmdVlayout->addLayout(SelfDfnCmdHlayout2);
+    selfDfnCmdVlayout->addWidget(tableWidget);
+    selfDfnCmdVlayout->addLayout(selfDfnCmdHlayout1);
+    selfDfnCmdVlayout->addLayout(selfDfnCmdHlayout2);
 
-    // 设置垂直布局
-    setLayout(SelfDfnCmdVlayout);
+    //将垂直布局添加到SelfDfnCmdArea中
+    ui->SelfDefineCmdArea->setLayout(selfDfnCmdVlayout);
+
 }
 
-/*@brief：设置普通模式按钮槽函数：1.发送“正常模式设置命令”
+/**
+ * @brief：设置普通模式按钮槽函数：1.发送“正常模式设置命令”
  * 2.更新标志量
  *@param ：无
  *@retval：无
@@ -130,13 +153,29 @@ void Widget::on_normalModeBtn_clicked()
         if (bytesWritten == -1) {
             ui->logPlainTextEdit->appendPlainText(getTimestamp() + "发送失败: " + socket->errorString());
         } else {
-            ui->logPlainTextEdit->appendPlainText(getTimestamp() + "设置为正常工作模式...");
+            ui->logPlainTextEdit->appendPlainText(getTimestamp() + "发送成功！正在设置为正常工作模式...");
+            QString hexPacket=hexToFormatStr(packet);
+            ui->logPlainTextEdit->appendPlainText(getTimestamp() + "Hex:"+hexPacket);
+
             //发送成功，更改相应的标志量设置
             devStateSet=NORMAL_MODE;
             sendCmdFlag=TCP_SEND_DEFAULT_STATE;
             changeWorkModeFlag=true;
         }
     }
+}
+
+/**
+ * @brief:将输入的二级制串转换为 以空格分割字节的 全大写的 格式化字符串,方便log打印和阅读
+ * eg:(QByteArray)0x123456ef->(QString)12 34 56 EF
+ * @param:QByteArray packet 数据包
+ * @retval:QString 格式化的数据包字符串
+*/
+QString Widget::hexToFormatStr(QByteArray packet)
+{
+    QString formatPacket=packet.toHex().toUpper();
+    formatPacket=formatPacket.replace(QRegularExpression("(..)"),"\\1 ").trimmed();
+    return formatPacket;
 }
 
 /*@brief：设置低功耗模式按钮槽函数：
@@ -177,7 +216,9 @@ void Widget::on_lowPowerModeBtn_clicked()
         if (bytesWritten == -1) {
             ui->logPlainTextEdit->appendPlainText(getTimestamp() + "发送失败: " + socket->errorString());
         } else {
-            ui->logPlainTextEdit->appendPlainText(getTimestamp() + "设置为低功耗模式...");
+            ui->logPlainTextEdit->appendPlainText(getTimestamp() + "发送成功！正在设置为低功耗模式...");
+            QString hexPacket=hexToFormatStr(packet);
+            ui->logPlainTextEdit->appendPlainText(getTimestamp() + "Hex:"+hexPacket);
             //更改标志量设置
             devStateSet=LOW_POWER_MODE;
             sendCmdFlag=TCP_SEND_DEFAULT_STATE;
@@ -410,7 +451,8 @@ bool Widget::isValidSubnetMask(const QString &input)
     return (inverted & (inverted - 1)) == 0;
 }
 
-/*@brief：下位机断开连接按钮槽函数：
+/**
+ * @brief：下位机断开连接按钮槽函数：
  * 1.如果已连接下位机，断开与下位机的TCP连接
  * 2.如果正在尝试连接下位机，终止正在进行的连接操作
  *@param ：无
@@ -438,7 +480,8 @@ void Widget::on_disconnectBtn_clicked()
     }
 }
 
-/*@brief：下位机连接成功信号对应的槽函数：
+/**
+ * @brief：下位机连接成功信号对应的槽函数：
  * 1.更新按钮的checked状态
  * 2.更新指示灯状态
  * 3.打印日志
@@ -465,7 +508,8 @@ void Widget::on_serverConnectted()
     ui->logPlainTextEdit->appendPlainText(logText);
 }
 
-/*@brief：下位机断开连接信号对应的槽函数：
+/**
+ * @brief：下位机断开连接信号对应的槽函数：
  * 1.更新按钮的checked状态
  * 2.更新指示灯状态
  * 3.打印日志
@@ -487,10 +531,11 @@ void Widget::on_serverDisconnectted()
     ui->logPlainTextEdit->appendPlainText(logText);
 }
 
-/*@brief：下位机连接错误信号对应的槽函数：
+/**
+ * @brief：下位机连接错误信号对应的槽函数：
  * 1.弹窗警告并打印错误日志
- *@param ：无
- *@retval：无
+ * @param ：无
+ * @retval：无
 */
 void Widget::on_serverConnectError()
 {
@@ -500,19 +545,19 @@ void Widget::on_serverConnectError()
     ui->logPlainTextEdit->appendPlainText(getTimestamp()+"socketError:"+errorDescription);
 }
 
-/*@brief：接收原始TCP数据包的槽函数：
+/**
+ * @brief：接收原始TCP数据包的槽函数：
  * 1.在日志中打印原始的tcp数据包内容（hex）
  * 2.处理数据包，并分发给相应的解析函数解析内容
- *@param ：无
- *@retval：无
+ * @param ：无
+ * @retval：无
 */
 void Widget::on_socketReadyRead()
 {
     QByteArray response = socket->readAll();
 
     //将获取的响应直接在log中打印出来(hex形式)
-    QString hexResponse=response.toHex().toUpper();
-    hexResponse=hexResponse.replace(QRegularExpression("(..)"),"\\1 ").trimmed();
+    QString hexResponse=hexToFormatStr(response);
     ui->logPlainTextEdit->appendPlainText(getTimestamp()+"接收到原始数据\n(Hex:"+hexResponse+")");
 
     if(TCP_UNANSWER_STATE==sendCmdFlag)
@@ -560,6 +605,12 @@ void Widget::on_socketReadyRead()
                 //TODO:实现逻辑需求
                 break;
 
+            case TCP_SEND_SET_DEV_WORKMODE://双向发送软件版本
+                qDebug() << "处理设备模式设置响应!";
+                parseDefalutResponse(response);
+                sendCmdFlag = TCP_UNANSWER_STATE;
+                break;
+
             default:
                 qDebug() << "sendCmdFlag:" << sendCmdFlag;
                 QMessageBox::information(this, "警告", "上位机处于异常的TCP接受状态!无法解析数据包!");
@@ -590,8 +641,7 @@ void Widget::parseDefalutResponse(QByteArray response)
                 ui->lowPowerModeBtn->setChecked(false);
                 changeWorkModeFlag=false;
             }
-        }
-        else if(LOW_POWER_MODE==devStateSet)//低功耗模式设置成功
+        }else if(LOW_POWER_MODE==devStateSet)//低功耗模式设置成功
         {
             if(true==changeWorkModeFlag)
             {
@@ -601,9 +651,11 @@ void Widget::parseDefalutResponse(QByteArray response)
                 changeWorkModeFlag=false;
             }
         }
+
         break;
     case 1:
         logText += "设置失败!";
+
         if(NORMAL_MODE==devStateSet)//正常模式设置失败
         {
             if(true==changeWorkModeFlag)
@@ -629,7 +681,29 @@ void Widget::parseDefalutResponse(QByteArray response)
         //TODO:设备状态设置成功时,状态可知,可是没有一个参数用来表示设备当前的工作状态
         break;
     case 2:
-        logText += "数采系统正在启动中...";
+        logText += "数采启动中,请稍后操作...";
+        if(NORMAL_MODE==devStateSet)//正常模式设置失败
+        {
+            if(true==changeWorkModeFlag)
+            {
+                ui->devStateLitLabel->setPixmap(yellowLit.scaled(60,60));//设备状态指示灯变为黄色
+                ui->normalModeBtn->setChecked(false);
+                ui->lowPowerModeBtn->setChecked(true);
+                changeWorkModeFlag=false;
+                devStateSet=LOW_POWER_MODE;
+            }
+        }
+        else if(LOW_POWER_MODE==devStateSet)//低功耗模式设置失败
+        {
+            if(true==changeWorkModeFlag)
+            {
+                ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//设备状态指示灯变为绿色
+                ui->normalModeBtn->setChecked(true);
+                ui->lowPowerModeBtn->setChecked(false);
+                changeWorkModeFlag=false;
+                devStateSet=NORMAL_MODE;
+            }
+        }
         break;
     default:
         logText += "未知响应!";
@@ -664,11 +738,12 @@ void Widget::parseOtherResponse(QByteArray response, devPhysicsParameter *phyPar
         //限定电压的最大最小值，大于最大值
         if(phyPara->batVol>12.48f)
         {
-            phyPara->batPercent=100.0f;
+            phyPara->batPercent=100;
         }else if(phyPara->batVol<10.74f)
         {
-            phyPara->batPercent=0.0f;
+            phyPara->batPercent=0;
         }
+
         ui->logPlainTextEdit->appendPlainText("电池百分比: " + QString::number(phyPara->batPercent) + " %");
         ui->logPlainTextEdit->appendPlainText("电池电压: " + QString::number(phyPara->batVol, 'f', 2) + " V");
         ui->logPlainTextEdit->appendPlainText("板卡温度: " + QString::number(phyPara->temperature, 'f', 2) + " °C");
@@ -677,7 +752,14 @@ void Widget::parseOtherResponse(QByteArray response, devPhysicsParameter *phyPar
 
         //将物理参数显示在对应的文本框
         ui->BatVolLineEdit->setText(QString::number(phyPara->batVol, 'f', 2) + " V");//显示电池电压
-        ui->BatPercentLineEdit->setText(QString::number(phyPara->batPercent) + " %");//显示电池百分比
+        if((float)(phyPara->batPercent)<=readFromJson("VolThreshold"))
+        {
+            ui->BatPercentLineEdit->setText(QString::number(phyPara->batPercent) + " % !电量低!");
+        }
+        else
+        {
+            ui->BatPercentLineEdit->setText(QString::number(phyPara->batPercent) + " %");//显示电池百分比
+        }
         ui->CurrentLineEdit->setText(QString::number(phyPara->current, 'f', 2) + " A");//显示板卡电流
         ui->TemperLineEdit->setText(QString::number(phyPara->temperature, 'f', 2) + " °C");//显示板卡温度
     }
@@ -1030,36 +1112,213 @@ void Widget::on_userDefCmdBtn_clicked()
     ui->cmdStackedWidget->setCurrentIndex(nextIndex);
 }
 
-//调整文本输入框大小槽函数
-//void Widget::adjustTextEditHeight(QTextEdit *senderEdit) {
-//    // 确保文档布局更新（计算准确高度）
-//    senderEdit->document()->documentLayout()->update();
+//自定义命令保存按钮槽函数
+void Widget::saveSelfDfnCmdBtn_clicked()
+{
+    qDebug()<<"save cmd btn clicked";
+    //获取当前选中的行
+    int row = tableWidget->currentRow();
 
-//    // 参数定义
-//    const int lineHeight = senderEdit->fontMetrics().lineSpacing();
-//    const int margin = senderEdit->contentsMargins().top() + senderEdit->contentsMargins().bottom();
-//    const int maxHeight = 6 * lineHeight + margin; // 最大高度为6行（根据需求调整）
 
-//    // 计算理想高度
-//    int docHeight = senderEdit->document()->size().height();
-//    int desiredHeight = qMax(lineHeight + margin, qMin(docHeight + margin, maxHeight));
+    //如果没有行被选中，则在表格末尾添加新行
+    if(-1==row)
+    {
+        QMessageBox::information(this,"注意","请选中一行进行保存");
+        return;
+    }
 
-//    // 动态调整高度和滚动条
-//    if (desiredHeight < maxHeight) {
-//        senderEdit->setFixedHeight(desiredHeight);
-//        senderEdit->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff); // 隐藏滚动条
-//    } else {
-//        senderEdit->setFixedHeight(maxHeight);
-//        senderEdit->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded); // 按需显示滚动条
-//    }
+    //获取命令内容和描述
+    QString command = tableWidget->item(row,0)?tableWidget->item(row,0)->text():"cmd";
+    QString description = descriptionEdit->text();
 
-//    // 强制滚动到光标位置
-//    QTimer::singleShot(0, senderEdit, [senderEdit]() {
-//        senderEdit->ensureCursorVisible();
-//    });
+    // 设置命令和描述到表格中
+    tableWidget->setItem(row, 0, new QTableWidgetItem(command));
+    tableWidget->setItem(row, 1, new QTableWidgetItem(description));
 
-//    // 更新父布局（防止控件重叠）
-//    if (QWidget *parent = senderEdit->parentWidget()) {
-//        parent->updateGeometry();
-//    }
-//}
+    // 清空输入框
+    descriptionEdit->clear();
+}
+
+void Widget::addSelfDfnCmdBtn_clicked()
+{
+    int row = tableWidget->rowCount();
+    tableWidget->insertRow(row);
+}
+
+//自定义命令发送按钮槽函数
+void Widget::sendSelfDfnCmdBtn_clicked()
+{
+
+}
+
+//清除选中自定义命令按钮槽函数
+void Widget::clearSelfDfnCmdBtn_clicked()
+{
+
+}
+
+QString Widget::getConfigFilePath() {
+    // 获取应用程序的工作目录
+    QDir dir(QApplication::applicationDirPath());
+    return dir.filePath("config.json");
+}
+
+/**
+ * @brief：设置电压阈值按钮槽函数
+ * @param：无
+ * @retval：无
+*/
+void Widget::on_setVolThresholdBtn_clicked()
+{
+    // 获取 QLineEdit 中的数据
+    QString data = ui->setVolThresholdBtnLineEdit->text();
+
+    saveToJson("VolThreshold", data);
+}
+
+void Widget::on_setNormalMessFreqBtn_clicked()
+{
+    // 获取 QLineEdit 中的数据
+    QString data = ui->setNormalMessFreqLineEdit->text();
+
+    saveToJson("NormalMessFreq", data);
+
+}
+
+void Widget::on_setLowPowMessFreqBtn_clicked()
+{
+    // 获取 QLineEdit 中的数据
+    QString data = ui->setLowPowMessFreqLineEdit->text();
+
+    saveToJson("LowPowMessFreq", data);
+}
+
+/**
+ * @brief:初始化config.json
+ * @param:无
+ * @retval:无
+ */
+bool Widget::initJson()
+{
+    // 获取文件路径
+        QString filePath = getConfigFilePath();
+        QFile file(filePath);
+
+        // 如果文件不存在，则写入预设值
+        if (!file.exists()) {
+
+            // 创建预设的 JSON 对象
+            QJsonObject presetJson;
+            presetJson["VolThreshold"] = "20";
+            presetJson["NormalMessFreq"] = "2";
+            presetJson["LowPowMessFreq"] = "5";
+
+            // 将 JSON 对象转换为 JSON 文档
+            QJsonDocument jsonDoc(presetJson);
+
+            // 以写入模式打开文件
+            if (file.open(QIODevice::WriteOnly)) {
+                // 写入 JSON 数据到文件
+                file.write(jsonDoc.toJson());
+                file.close();
+                ui->logPlainTextEdit->appendPlainText(getTimestamp()+"INIT:Success!JSON file created with preset values !");
+                return true;
+            } else {
+                ui->logPlainTextEdit->appendPlainText(getTimestamp()+"INIT:Failed to create JSON file!");
+                return false;
+            }
+        }
+
+        // 如果文件存在，则保持不变
+        ui->logPlainTextEdit->appendPlainText(getTimestamp()+"INIT:JSON file already exists. No changes made.");
+
+        return true;
+}
+
+
+/**
+ * @brief：将数据保存在json文件中
+ * @param：QString key：要保存的内容：json格式key-value中的key
+ * @param：QString value：要保存的内容：json格式key-value中的value
+ * @retval: bool true成功，false失败
+*/
+bool Widget::saveToJson(QString key,QString value)
+{
+    // 读取现有 JSON 文件内容
+    QFile file(getConfigFilePath());
+    QJsonObject jsonObject;
+
+    if (file.exists() && file.open(QIODevice::ReadOnly)) {
+        QByteArray jsonData = file.readAll();
+        file.close();
+
+        // 解析现有 JSON 数据
+        QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData);
+        if (!jsonDoc.isNull() && jsonDoc.isObject()) {
+            jsonObject = jsonDoc.object();
+        }
+    }
+
+    // 添加新的 key-value 对
+    jsonObject[key] = value;
+
+    // 将 JSON 对象转换为 JSON 文档
+    QJsonDocument jsonDoc(jsonObject);
+
+    // 保存到文件
+    if (file.open(QIODevice::WriteOnly)) {
+        file.write(jsonDoc.toJson());
+        file.close();
+        QMessageBox::information(this, "注意", "保存成功!");
+        return true;
+    } else {
+        QMessageBox::warning(this, "注意", "保存成功!");
+        return false;
+    }
+}
+
+/**
+ * @brief：从 JSON 文件中读取指定 key 的值，并转换为浮点数
+ * @param：QString key：要读取的 key
+ * @retval: float 转换后的浮点数，如果失败则返回默认值
+ */
+float Widget::readFromJson(QString key) {
+    // 打开 JSON 文件
+    QFile file(getConfigFilePath());
+    if (!file.exists() || !file.open(QIODevice::ReadOnly)) {
+        QMessageBox::warning(this, "Error", "Failed to open JSON file!");
+        return 0.0f; // 返回默认值
+    }
+
+    // 读取文件内容
+    QByteArray jsonData = file.readAll();
+    file.close();
+
+    // 解析 JSON 数据
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData);
+    if (jsonDoc.isNull() || !jsonDoc.isObject()) {
+        QMessageBox::warning(this, "Error", "Invalid JSON format!");
+        return 0.0f; // 返回默认值
+    }
+
+    // 获取 JSON 对象
+    QJsonObject jsonObject = jsonDoc.object();
+
+    // 检查 key 是否存在
+    if (!jsonObject.contains(key)) {
+        QMessageBox::warning(this, "Error", QString("Key '%1' not found in JSON file!").arg(key));
+        return 0.0f; // 返回默认值
+    }
+
+    // 获取值并转换为浮点数
+    QString value = jsonObject[key].toString();
+    bool ok;
+    float floatValue = value.toFloat(&ok);
+
+    if (!ok) {
+        QMessageBox::warning(this, "Error", QString("Failed to convert value of key '%1' to float!").arg(key));
+        return 0.0f; // 返回默认值
+    }
+
+    return floatValue;
+}

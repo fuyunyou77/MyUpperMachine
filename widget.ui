@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1216</width>
-    <height>926</height>
+    <width>1000</width>
+    <height>819</height>
    </rect>
   </property>
   <property name="font">
@@ -16,11 +16,709 @@
     <pointsize>10</pointsize>
    </font>
   </property>
-  <layout class="QHBoxLayout" name="horizontalLayout_9">
+  <layout class="QHBoxLayout" name="horizontalLayout_17">
    <item>
-    <layout class="QVBoxLayout" name="verticalLayout_2">
+    <layout class="QVBoxLayout" name="verticalLayout_4">
+     <property name="leftMargin">
+      <number>5</number>
+     </property>
+     <property name="topMargin">
+      <number>5</number>
+     </property>
+     <property name="rightMargin">
+      <number>5</number>
+     </property>
+     <property name="bottomMargin">
+      <number>5</number>
+     </property>
      <item>
-      <layout class="QVBoxLayout" name="verticalLayout">
+      <layout class="QGridLayout" name="gridLayout_3">
+       <property name="leftMargin">
+        <number>5</number>
+       </property>
+       <property name="topMargin">
+        <number>5</number>
+       </property>
+       <property name="rightMargin">
+        <number>5</number>
+       </property>
+       <property name="bottomMargin">
+        <number>5</number>
+       </property>
+       <item row="0" column="0">
+        <layout class="QHBoxLayout" name="horizontalLayout_5" stretch="0,0">
+         <property name="leftMargin">
+          <number>5</number>
+         </property>
+         <property name="topMargin">
+          <number>5</number>
+         </property>
+         <property name="rightMargin">
+          <number>5</number>
+         </property>
+         <property name="bottomMargin">
+          <number>5</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="label">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <family>微软雅黑</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>IP:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="IPLineEdit">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>192.168.1.1</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item row="0" column="1">
+        <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0">
+         <property name="leftMargin">
+          <number>5</number>
+         </property>
+         <property name="topMargin">
+          <number>5</number>
+         </property>
+         <property name="rightMargin">
+          <number>5</number>
+         </property>
+         <property name="bottomMargin">
+          <number>5</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="label_3">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <family>微软雅黑</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>电池电压:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="BatVolLineEdit">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <family>微软雅黑</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>12.48 V</string>
+           </property>
+           <property name="readOnly">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item row="1" column="0">
+        <layout class="QHBoxLayout" name="horizontalLayout_6" stretch="0,0">
+         <property name="leftMargin">
+          <number>5</number>
+         </property>
+         <property name="topMargin">
+          <number>5</number>
+         </property>
+         <property name="rightMargin">
+          <number>5</number>
+         </property>
+         <property name="bottomMargin">
+          <number>5</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="label_11">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <family>微软雅黑</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>端口:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="PortLineEdit">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>5000</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item row="1" column="1">
+        <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,0">
+         <property name="leftMargin">
+          <number>5</number>
+         </property>
+         <property name="topMargin">
+          <number>5</number>
+         </property>
+         <property name="rightMargin">
+          <number>5</number>
+         </property>
+         <property name="bottomMargin">
+          <number>5</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="label_4">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <family>微软雅黑</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>电池百分比:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="BatPercentLineEdit">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <family>微软雅黑</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>100%</string>
+           </property>
+           <property name="readOnly">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item row="2" column="0">
+        <layout class="QHBoxLayout" name="horizontalLayout_7" stretch="0,0">
+         <property name="leftMargin">
+          <number>5</number>
+         </property>
+         <property name="topMargin">
+          <number>5</number>
+         </property>
+         <property name="rightMargin">
+          <number>5</number>
+         </property>
+         <property name="bottomMargin">
+          <number>5</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="label_7">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <family>微软雅黑</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>ID:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="devIDLineEdit">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>30</string>
+           </property>
+           <property name="readOnly">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item row="2" column="1">
+        <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0">
+         <property name="leftMargin">
+          <number>5</number>
+         </property>
+         <property name="topMargin">
+          <number>5</number>
+         </property>
+         <property name="rightMargin">
+          <number>5</number>
+         </property>
+         <property name="bottomMargin">
+          <number>5</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="label_5">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <family>微软雅黑</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>板卡电流:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="CurrentLineEdit">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <family>微软雅黑</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>0.25 A</string>
+           </property>
+           <property name="readOnly">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item row="3" column="0">
+        <layout class="QHBoxLayout" name="horizontalLayout_8" stretch="0,0">
+         <property name="leftMargin">
+          <number>5</number>
+         </property>
+         <property name="topMargin">
+          <number>5</number>
+         </property>
+         <property name="rightMargin">
+          <number>5</number>
+         </property>
+         <property name="bottomMargin">
+          <number>5</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="label_2">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <family>微软雅黑</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>掩码:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="MaskLineEdit">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="readOnly">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item row="3" column="1">
+        <layout class="QHBoxLayout" name="horizontalLayout_4" stretch="0,0">
+         <property name="leftMargin">
+          <number>5</number>
+         </property>
+         <property name="topMargin">
+          <number>5</number>
+         </property>
+         <property name="rightMargin">
+          <number>5</number>
+         </property>
+         <property name="bottomMargin">
+          <number>5</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="label_6">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <family>微软雅黑</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>板卡温度:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="TemperLineEdit">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <family>微软雅黑</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>32 ℃</string>
+           </property>
+           <property name="readOnly">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item row="4" column="0">
+        <layout class="QHBoxLayout" name="horizontalLayout_14" stretch="0,0,0,0">
+         <property name="spacing">
+          <number>2</number>
+         </property>
+         <property name="sizeConstraint">
+          <enum>QLayout::SetDefaultConstraint</enum>
+         </property>
+         <property name="leftMargin">
+          <number>5</number>
+         </property>
+         <property name="topMargin">
+          <number>5</number>
+         </property>
+         <property name="rightMargin">
+          <number>5</number>
+         </property>
+         <property name="bottomMargin">
+          <number>5</number>
+         </property>
+         <item>
+          <spacer name="horizontalSpacer_5">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_9">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>52</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <family>微软雅黑</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>设备状态</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="devStateLitLabel">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>40</width>
+             <height>40</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>40</width>
+             <height>40</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>设备灯</string>
+           </property>
+           <property name="scaledContents">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_6">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item row="4" column="1">
+        <layout class="QHBoxLayout" name="horizontalLayout_13">
+         <property name="spacing">
+          <number>2</number>
+         </property>
+         <property name="leftMargin">
+          <number>5</number>
+         </property>
+         <property name="topMargin">
+          <number>5</number>
+         </property>
+         <property name="rightMargin">
+          <number>5</number>
+         </property>
+         <property name="bottomMargin">
+          <number>5</number>
+         </property>
+         <item>
+          <spacer name="horizontalSpacer_3">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_10">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>52</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <family>微软雅黑</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>网络状态</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="netStateLitLabel">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>40</width>
+             <height>40</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>40</width>
+             <height>40</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>网络灯</string>
+           </property>
+           <property name="scaledContents">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_4">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_16">
        <property name="leftMargin">
         <number>5</number>
        </property>
@@ -34,7 +732,7 @@
         <number>5</number>
        </property>
        <item>
-        <layout class="QGridLayout" name="gridLayout_3">
+        <layout class="QVBoxLayout" name="verticalLayout">
          <property name="leftMargin">
           <number>5</number>
          </property>
@@ -47,8 +745,8 @@
          <property name="bottomMargin">
           <number>5</number>
          </property>
-         <item row="0" column="0">
-          <layout class="QHBoxLayout" name="horizontalLayout_5" stretch="0,0">
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_11">
            <property name="leftMargin">
             <number>5</number>
            </property>
@@ -62,47 +760,37 @@
             <number>5</number>
            </property>
            <item>
-            <widget class="QLabel" name="label">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <family>微软雅黑</family>
-               <pointsize>10</pointsize>
-              </font>
-             </property>
+            <widget class="QLabel" name="label_8">
              <property name="text">
-              <string>IP:</string>
+              <string>电量阈值:</string>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QLineEdit" name="IPLineEdit">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>0</height>
-              </size>
-             </property>
+            <widget class="QLineEdit" name="setVolThresholdBtnLineEdit">
              <property name="text">
-              <string>192.168.1.1</string>
+              <string>20</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_14">
+             <property name="text">
+              <string>%</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="setVolThresholdBtn">
+             <property name="text">
+              <string>设置</string>
              </property>
             </widget>
            </item>
           </layout>
          </item>
-         <item row="0" column="1">
-          <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0">
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_9">
            <property name="leftMargin">
             <number>5</number>
            </property>
@@ -116,56 +804,37 @@
             <number>5</number>
            </property>
            <item>
-            <widget class="QLabel" name="label_3">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <family>微软雅黑</family>
-               <pointsize>10</pointsize>
-              </font>
-             </property>
+            <widget class="QLabel" name="label_12">
              <property name="text">
-              <string>电池电压:</string>
+              <string>正常模式发送信息频次:</string>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QLineEdit" name="BatVolLineEdit">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <family>微软雅黑</family>
-               <pointsize>10</pointsize>
-              </font>
-             </property>
+            <widget class="QLineEdit" name="setNormalMessFreqLineEdit">
              <property name="text">
-              <string>12.48 V</string>
+              <string>5</string>
              </property>
-             <property name="readOnly">
-              <bool>false</bool>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_15">
+             <property name="text">
+              <string>秒/次</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="setNormalMessFreqBtn">
+             <property name="text">
+              <string>设置</string>
              </property>
             </widget>
            </item>
           </layout>
          </item>
-         <item row="1" column="0">
-          <layout class="QHBoxLayout" name="horizontalLayout_6" stretch="0,0">
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_10">
            <property name="leftMargin">
             <number>5</number>
            </property>
@@ -179,543 +848,150 @@
             <number>5</number>
            </property>
            <item>
-            <widget class="QLabel" name="label_11">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <family>微软雅黑</family>
-               <pointsize>10</pointsize>
-              </font>
-             </property>
+            <widget class="QLabel" name="label_13">
              <property name="text">
-              <string>端口:</string>
+              <string>低功耗模式发送信息频次:</string>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QLineEdit" name="PortLineEdit">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>0</height>
-              </size>
-             </property>
+            <widget class="QLineEdit" name="setLowPowMessFreqLineEdit">
              <property name="text">
-              <string>5000</string>
+              <string>2</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_16">
+             <property name="text">
+              <string>秒/次</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="setLowPowMessFreqBtn">
+             <property name="text">
+              <string>设置</string>
              </property>
             </widget>
            </item>
           </layout>
          </item>
-         <item row="1" column="1">
-          <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,0">
-           <property name="leftMargin">
-            <number>5</number>
+        </layout>
+       </item>
+       <item>
+        <layout class="QVBoxLayout" name="verticalLayout_2">
+         <property name="leftMargin">
+          <number>5</number>
+         </property>
+         <property name="topMargin">
+          <number>5</number>
+         </property>
+         <property name="rightMargin">
+          <number>5</number>
+         </property>
+         <property name="bottomMargin">
+          <number>5</number>
+         </property>
+         <item>
+          <widget class="QPushButton" name="connectBtn">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
            </property>
-           <property name="topMargin">
-            <number>5</number>
+           <property name="font">
+            <font>
+             <family>微软雅黑</family>
+             <pointsize>10</pointsize>
+            </font>
            </property>
-           <property name="rightMargin">
-            <number>5</number>
+           <property name="text">
+            <string>连接</string>
            </property>
-           <property name="bottomMargin">
-            <number>5</number>
-           </property>
-           <item>
-            <widget class="QLabel" name="label_4">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <family>微软雅黑</family>
-               <pointsize>10</pointsize>
-              </font>
-             </property>
-             <property name="text">
-              <string>电池百分比:</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLineEdit" name="BatPercentLineEdit">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <family>微软雅黑</family>
-               <pointsize>10</pointsize>
-              </font>
-             </property>
-             <property name="text">
-              <string>100%</string>
-             </property>
-             <property name="readOnly">
-              <bool>false</bool>
-             </property>
-            </widget>
-           </item>
-          </layout>
+          </widget>
          </item>
-         <item row="2" column="0">
-          <layout class="QHBoxLayout" name="horizontalLayout_7" stretch="0,0">
-           <property name="leftMargin">
-            <number>5</number>
+         <item>
+          <widget class="QPushButton" name="disconnectBtn">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
            </property>
-           <property name="topMargin">
-            <number>5</number>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
            </property>
-           <property name="rightMargin">
-            <number>5</number>
+           <property name="font">
+            <font>
+             <family>微软雅黑</family>
+             <pointsize>10</pointsize>
+            </font>
            </property>
-           <property name="bottomMargin">
-            <number>5</number>
+           <property name="text">
+            <string>断开</string>
            </property>
-           <item>
-            <widget class="QLabel" name="label_7">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <family>微软雅黑</family>
-               <pointsize>10</pointsize>
-              </font>
-             </property>
-             <property name="text">
-              <string>ID:</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLineEdit" name="devIDLineEdit">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="text">
-              <string>30</string>
-             </property>
-             <property name="readOnly">
-              <bool>false</bool>
-             </property>
-            </widget>
-           </item>
-          </layout>
+          </widget>
          </item>
-         <item row="2" column="1">
-          <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0">
-           <property name="leftMargin">
-            <number>5</number>
+         <item>
+          <widget class="QPushButton" name="normalModeBtn">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
            </property>
-           <property name="topMargin">
-            <number>5</number>
+           <property name="font">
+            <font>
+             <family>微软雅黑</family>
+             <pointsize>10</pointsize>
+            </font>
            </property>
-           <property name="rightMargin">
-            <number>5</number>
+           <property name="text">
+            <string>正常模式</string>
            </property>
-           <property name="bottomMargin">
-            <number>5</number>
+           <property name="checkable">
+            <bool>false</bool>
            </property>
-           <item>
-            <widget class="QLabel" name="label_5">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <family>微软雅黑</family>
-               <pointsize>10</pointsize>
-              </font>
-             </property>
-             <property name="text">
-              <string>板卡电流:</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLineEdit" name="CurrentLineEdit">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <family>微软雅黑</family>
-               <pointsize>10</pointsize>
-              </font>
-             </property>
-             <property name="text">
-              <string>0.25 A</string>
-             </property>
-             <property name="readOnly">
-              <bool>false</bool>
-             </property>
-            </widget>
-           </item>
-          </layout>
+           <property name="checked">
+            <bool>false</bool>
+           </property>
+           <property name="autoExclusive">
+            <bool>false</bool>
+           </property>
+          </widget>
          </item>
-         <item row="3" column="0">
-          <layout class="QHBoxLayout" name="horizontalLayout_8" stretch="0,0">
-           <property name="leftMargin">
-            <number>5</number>
+         <item>
+          <widget class="QPushButton" name="lowPowerModeBtn">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
            </property>
-           <property name="topMargin">
-            <number>5</number>
+           <property name="font">
+            <font>
+             <family>微软雅黑</family>
+             <pointsize>10</pointsize>
+            </font>
            </property>
-           <property name="rightMargin">
-            <number>5</number>
+           <property name="text">
+            <string>低功耗模式</string>
            </property>
-           <property name="bottomMargin">
-            <number>5</number>
+           <property name="checkable">
+            <bool>false</bool>
            </property>
-           <item>
-            <widget class="QLabel" name="label_2">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <family>微软雅黑</family>
-               <pointsize>10</pointsize>
-              </font>
-             </property>
-             <property name="text">
-              <string>掩码:</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLineEdit" name="MaskLineEdit">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="readOnly">
-              <bool>false</bool>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </item>
-         <item row="3" column="1">
-          <layout class="QHBoxLayout" name="horizontalLayout_4" stretch="0,0">
-           <property name="leftMargin">
-            <number>5</number>
+           <property name="checked">
+            <bool>false</bool>
            </property>
-           <property name="topMargin">
-            <number>5</number>
+           <property name="autoExclusive">
+            <bool>false</bool>
            </property>
-           <property name="rightMargin">
-            <number>5</number>
-           </property>
-           <property name="bottomMargin">
-            <number>5</number>
-           </property>
-           <item>
-            <widget class="QLabel" name="label_6">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <family>微软雅黑</family>
-               <pointsize>10</pointsize>
-              </font>
-             </property>
-             <property name="text">
-              <string>板卡温度:</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLineEdit" name="TemperLineEdit">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <family>微软雅黑</family>
-               <pointsize>10</pointsize>
-              </font>
-             </property>
-             <property name="text">
-              <string>32 ℃</string>
-             </property>
-             <property name="readOnly">
-              <bool>false</bool>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </item>
-         <item row="4" column="0">
-          <layout class="QHBoxLayout" name="horizontalLayout_14" stretch="0,0,0,0">
-           <property name="spacing">
-            <number>2</number>
-           </property>
-           <property name="sizeConstraint">
-            <enum>QLayout::SetDefaultConstraint</enum>
-           </property>
-           <property name="leftMargin">
-            <number>5</number>
-           </property>
-           <property name="topMargin">
-            <number>5</number>
-           </property>
-           <property name="rightMargin">
-            <number>5</number>
-           </property>
-           <property name="bottomMargin">
-            <number>5</number>
-           </property>
-           <item>
-            <spacer name="horizontalSpacer_5">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item>
-            <widget class="QLabel" name="label_9">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>52</width>
-               <height>30</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <family>微软雅黑</family>
-               <pointsize>10</pointsize>
-              </font>
-             </property>
-             <property name="text">
-              <string>设备状态</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="devStateLitLabel">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>40</width>
-               <height>40</height>
-              </size>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>40</width>
-               <height>40</height>
-              </size>
-             </property>
-             <property name="text">
-              <string>设备灯</string>
-             </property>
-             <property name="scaledContents">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <spacer name="horizontalSpacer_6">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-          </layout>
-         </item>
-         <item row="4" column="1">
-          <layout class="QHBoxLayout" name="horizontalLayout_13">
-           <property name="spacing">
-            <number>2</number>
-           </property>
-           <property name="leftMargin">
-            <number>5</number>
-           </property>
-           <property name="topMargin">
-            <number>5</number>
-           </property>
-           <property name="rightMargin">
-            <number>5</number>
-           </property>
-           <property name="bottomMargin">
-            <number>5</number>
-           </property>
-           <item>
-            <spacer name="horizontalSpacer_3">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item>
-            <widget class="QLabel" name="label_10">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>52</width>
-               <height>30</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <family>微软雅黑</family>
-               <pointsize>10</pointsize>
-              </font>
-             </property>
-             <property name="text">
-              <string>网络状态</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="netStateLitLabel">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>40</width>
-               <height>40</height>
-              </size>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>40</width>
-               <height>40</height>
-              </size>
-             </property>
-             <property name="text">
-              <string>网络灯</string>
-             </property>
-             <property name="scaledContents">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <spacer name="horizontalSpacer_4">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-          </layout>
+          </widget>
          </item>
         </layout>
        </item>
@@ -727,59 +1003,15 @@
         <number>5</number>
        </property>
        <property name="topMargin">
-        <number>0</number>
+        <number>5</number>
        </property>
        <property name="rightMargin">
         <number>5</number>
        </property>
        <property name="bottomMargin">
-        <number>0</number>
+        <number>5</number>
        </property>
-       <property name="spacing">
-        <number>6</number>
-       </property>
-       <item row="1" column="1">
-        <widget class="QPushButton" name="lowPowerModeBtn">
-         <property name="minimumSize">
-          <size>
-           <width>80</width>
-           <height>37</height>
-          </size>
-         </property>
-         <property name="font">
-          <font>
-           <family>微软雅黑</family>
-           <pointsize>10</pointsize>
-          </font>
-         </property>
-         <property name="text">
-          <string>低功耗模式</string>
-         </property>
-         <property name="checkable">
-          <bool>false</bool>
-         </property>
-         <property name="checked">
-          <bool>false</bool>
-         </property>
-         <property name="autoExclusive">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="1">
-        <widget class="QPushButton" name="forceUpdateLocBtn">
-         <property name="font">
-          <font>
-           <family>微软雅黑</family>
-           <pointsize>10</pointsize>
-          </font>
-         </property>
-         <property name="text">
-          <string>强制更新位置</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
+       <item row="0" column="0">
         <widget class="QPushButton" name="getDevPhyParaBtn">
          <property name="font">
           <font>
@@ -795,74 +1027,7 @@
          </property>
         </widget>
        </item>
-       <item row="4" column="0">
-        <widget class="QPushButton" name="getDevWorkParaBtn">
-         <property name="font">
-          <font>
-           <family>微软雅黑</family>
-           <pointsize>10</pointsize>
-          </font>
-         </property>
-         <property name="text">
-          <string>设备工作参数</string>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="1">
-        <widget class="QPushButton" name="userDefCmdBtn">
-         <property name="font">
-          <font>
-           <family>微软雅黑</family>
-           <pointsize>10</pointsize>
-          </font>
-         </property>
-         <property name="text">
-          <string> 自定义命令</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
-        <widget class="QPushButton" name="getDevStateBtn">
-         <property name="font">
-          <font>
-           <family>微软雅黑</family>
-           <pointsize>10</pointsize>
-          </font>
-         </property>
-         <property name="text">
-          <string>查询设备状态</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="0">
-        <widget class="QPushButton" name="normalModeBtn">
-         <property name="minimumSize">
-          <size>
-           <width>80</width>
-           <height>37</height>
-          </size>
-         </property>
-         <property name="font">
-          <font>
-           <family>微软雅黑</family>
-           <pointsize>10</pointsize>
-          </font>
-         </property>
-         <property name="text">
-          <string>正常模式</string>
-         </property>
-         <property name="checkable">
-          <bool>false</bool>
-         </property>
-         <property name="checked">
-          <bool>false</bool>
-         </property>
-         <property name="autoExclusive">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="1">
+       <item row="0" column="1">
         <widget class="QPushButton" name="getSateInfoBtn">
          <property name="font">
           <font>
@@ -875,14 +1040,8 @@
          </property>
         </widget>
        </item>
-       <item row="0" column="0">
-        <widget class="QPushButton" name="connectBtn">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>37</height>
-          </size>
-         </property>
+       <item row="1" column="0">
+        <widget class="QPushButton" name="getDevStateBtn">
          <property name="font">
           <font>
            <family>微软雅黑</family>
@@ -890,24 +1049,12 @@
           </font>
          </property>
          <property name="text">
-          <string>连接</string>
+          <string>查询设备状态</string>
          </property>
         </widget>
        </item>
-       <item row="0" column="1">
-        <widget class="QPushButton" name="disconnectBtn">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>37</height>
-          </size>
-         </property>
+       <item row="1" column="1">
+        <widget class="QPushButton" name="forceUpdateLocBtn">
          <property name="font">
           <font>
            <family>微软雅黑</family>
@@ -915,7 +1062,33 @@
           </font>
          </property>
          <property name="text">
-          <string>断开</string>
+          <string>强制更新位置</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QPushButton" name="getDevWorkParaBtn">
+         <property name="font">
+          <font>
+           <family>微软雅黑</family>
+           <pointsize>10</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string>设备工作参数</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QPushButton" name="userDefCmdBtn">
+         <property name="font">
+          <font>
+           <family>微软雅黑</family>
+           <pointsize>10</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string> 自定义命令</string>
          </property>
         </widget>
        </item>
@@ -1042,8 +1215,8 @@
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>298</width>
-              <height>263</height>
+              <width>66</width>
+              <height>16</height>
              </rect>
             </property>
            </widget>

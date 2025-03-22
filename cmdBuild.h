@@ -123,6 +123,7 @@ typedef struct {
 QString getTimestamp();
 QByteArray buildCmdPktHeader(CommandWord cmd,uint8_t devID);
 QByteArray removeCmdPktHeader(QByteArray response,CmdPacketHeader *header);
+
 //template <typename T>
 //void convertBigEndianField(T& field);
 #endif // CMDBUILD_H

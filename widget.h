@@ -24,13 +24,13 @@
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QDir>
 #include "cmdBuild.h"
 
 #define CMD_PORT 21079//命令端口
 #define DATA_PORT 21081//数据流端口
 #define CMD_DEFAULT_DATA 0xFF//上位机发送命令包的默认数据内容
 #define CMD_HEADER_LENGTH 12//命令包包头长度
-
 
 
 enum IPv4ValidationFlag {
@@ -95,9 +95,9 @@ private slots:
 
     void on_serverConnectted();//TCP成功连接
     void on_serverDisconnectted();//TCP断开连接
-    void on_serverConnectError();//TCP
+    void on_serverConnectError();//TCP连接错误
 
-    void on_socketReadyRead(); // 处理下位机响应
+    void on_socketReadyRead(); // 处理下位机响应报文，并传给相应的parse函数
 
     void on_sendBtn_clicked();//处理发送按钮按下槽函数
 
@@ -109,7 +109,19 @@ private slots:
 
     void on_userDefCmdBtn_clicked();//切换为用户自定义按键页面
 
+    /***动态创建的widget不能使用qt的connect slot by name，命名也不能按照那个规则命名，否则即使***/
+    void saveSelfDfnCmdBtn_clicked();//自定义命令保存按钮槽函数
+    void addSelfDfnCmdBtn_clicked();//增加自定义命令按钮槽函数
+    void sendSelfDfnCmdBtn_clicked();//自定义命令发送按钮槽函数
+    void clearSelfDfnCmdBtn_clicked();//清除选中自定义命令按钮槽函数
+
 //    void adjustTextEditHeight(QTextEdit *edit);//调整文本输入框大小
+
+    void on_setVolThresholdBtn_clicked();//设置电量阈值槽按钮槽函数
+
+    void on_setNormalMessFreqBtn_clicked();//设置正常模式信息获取频次按钮槽函数
+
+    void on_setLowPowMessFreqBtn_clicked();//设置低功耗模式信息获取频次按钮槽函数
 
 private:
     Ui::Widget *ui;
@@ -120,6 +132,18 @@ private:
     QPixmap yellowLit;
     QString mask="255.255.255.0";
     uint8_t devID=0xff;
+
+    //创建表组件，存储自定义命令
+    QTableWidget * tableWidget= new QTableWidget(0,2,this);
+
+    //创建输入框,保存按钮，新增按钮
+    QLineEdit *descriptionEdit = new QLineEdit(this);
+    QPushButton *saveSelfDfnCmdBtn = new QPushButton("保存", this);
+    QPushButton *addSelfDfnCmdBtn = new QPushButton("新增",this);
+
+    //创建发送和清除按钮
+    QPushButton *sendSelfDfnCmdBtn = new QPushButton("发送选中命令", this);
+    QPushButton *clearSelfDfnCmdBtn=new QPushButton("清除选中命令", this);
 
     //TODO:设备模式从设备获取更安全,设备出现故障一上电就是低功耗模式,那么这个预设就是有问题的
     WorkMode devStateSet=NORMAL_MODE;//设备上电是正常工作模式
@@ -135,8 +159,10 @@ private:
     softwareVersion sfVersion;//软件版本结构体
     devWorkParameter devWorkParam;//设备工作参数结构体
 
+
     /***********ui布局函数************/
-    void SelfDfnCmdArealayout(void);
+    void uiInit();//初始化ui中的内容,获取一次设备参数更新到对应的栏位
+    void SelfDfnCmdArealayout(void);//设置自定义命令区域的ui布局
 
     /***********逻辑控制函数************/
     //处理不同的命令对应的数据包
@@ -149,6 +175,7 @@ private:
     void parseOtherResponse(QByteArray response,softwareVersion *sfVersion);
     void parseOtherResponse(QByteArray response,devWorkParameter *devWorkParam);
 
+    QString hexToFormatStr(QByteArray);//将接收数据包格式化的函数,方便log打印和阅读
     TcpSendCmdType CmdTcpType(uint8_t cmdHeader);//判断发出的数据包的类型，与不同的命令相对应
     bool isStringInvalid(QString sendText);//判断作为TCP命令被发送的字符串是否非法
 
@@ -161,6 +188,11 @@ private:
     bool isPortValid(const QString &port, bool allowZero);//判断端口号是否合法
     bool isDevIDValid(const QString &devID);//判断设备id是否合法
     bool isValidSubnetMask(const QString &input);//判断子网掩码是否合法
+
+    QString getConfigFilePath(); // 声明 getConfigFilePath 函数
+    bool initJson();//初始化config.json
+    bool saveToJson(QString key,QString value);//将数据保存到json文件中
+    float readFromJson(QString key);//从json中读取数据
 };
 
 #endif // WIDGET_H
