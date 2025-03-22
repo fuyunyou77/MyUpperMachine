@@ -550,8 +550,8 @@ void Widget::on_serverDisconnectted()
     ui->devStateLitLabel ->setPixmap(greyLit.scaled(60,60));//设置设备状态指示灯为灰色,表示断开连接
 
     timer.stop();
-
-    //TODO：下位机断开连接，相关的标志量要全部清空
+    timer_on_flag=false;
+    //TODO:下位机断开连接，相关的标志量要全部清空
 
     //打印日志
     QString logText=getTimestamp();
@@ -1413,6 +1413,7 @@ void Widget::setGetDevInfoFreq()
     timer.start();
 }
 
+//TODO:定时获取设备信息和手动获取，以及其他TCP命令有可能冲突，可能涉及线程安全问题
 /**
  * @brief:定时获取设备信息槽函数
  * @param:无
