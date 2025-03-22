@@ -25,6 +25,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QDir>
+#include <QTimer>
 #include "cmdBuild.h"
 
 #define CMD_PORT 21079//命令端口
@@ -84,7 +85,9 @@ class Widget : public QWidget
     Q_ENUM(IPv4ValidationFlag)
 
 public:
+
     CmdPacketHeader header;
+
     Widget(QWidget *parent = nullptr);
     ~Widget();
 
@@ -116,13 +119,10 @@ private slots:
     void sendSelfDfnCmdBtn_clicked();//自定义命令发送按钮槽函数
     void clearSelfDfnCmdBtn_clicked();//清除选中自定义命令按钮槽函数
 
-//    void adjustTextEditHeight(QTextEdit *edit);//调整文本输入框大小
-
     void on_setVolThresholdBtn_clicked();//设置电量阈值槽按钮槽函数
-
     void on_setNormalMessFreqBtn_clicked();//设置正常模式信息获取频次按钮槽函数
-
     void on_setLowPowMessFreqBtn_clicked();//设置低功耗模式信息获取频次按钮槽函数
+    void get_devPhyParam_timeout();//定时获取设备信息槽函数
 
 private:
     Ui::Widget *ui;
@@ -133,7 +133,14 @@ private:
     QPixmap yellowLit;
     QString mask="255.255.255.0";
     uint8_t devID=0xff;
+    bool timer_on_flag=false;
 
+    //TODO:设备模式从设备获取更安全,设备出现故障一上电就是低功耗模式,那么这个预设就是有问题的
+    WorkMode devStateSet=UNKNOWN_MODE;//设备上电是正常工作模式
+    bool changeWorkModeFlag=false;
+
+    //定时获取设备状态信息的定时器
+    QTimer timer;
     //创建表组件，存储自定义命令
     QTableWidget * tableWidget= new QTableWidget(0,2,this);
 
@@ -145,10 +152,6 @@ private:
     //创建发送和清除按钮
     QPushButton *sendSelfDfnCmdBtn = new QPushButton("发送选中命令", this);
     QPushButton *clearSelfDfnCmdBtn=new QPushButton("清除选中命令", this);
-
-    //TODO:设备模式从设备获取更安全,设备出现故障一上电就是低功耗模式,那么这个预设就是有问题的
-    WorkMode devStateSet=NORMAL_MODE;//设备上电是正常工作模式
-    bool changeWorkModeFlag=false;
 
     //该值用来记录tcp发出的命令，在tcp数据接受函数中使用该标志量决定调用什么函数处理回复的消息
     TcpSendCmdType sendCmdFlag=TCP_UNANSWER_STATE;
@@ -194,6 +197,8 @@ private:
     bool initJson();//初始化config.json
     bool saveToJson(QString key,QString value);//将数据保存到json文件中
     float readFromJson(QString key);//从json中读取数据
+
+    void setGetDevInfoFreq();//设置自动获取设备物理信息频次
 };
 
 #endif // WIDGET_H

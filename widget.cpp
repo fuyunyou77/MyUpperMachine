@@ -40,6 +40,8 @@ Widget::Widget(QWidget *parent)
     connect(clearSelfDfnCmdBtn,&QPushButton::clicked,this,&Widget::clearSelfDfnCmdBtn_clicked);
     connect(addSelfDfnCmdBtn,&QPushButton::clicked,this,&Widget::addSelfDfnCmdBtn_clicked);
 
+    connect(&timer, &QTimer::timeout,this,&Widget::get_devPhyParam_timeout);
+
     qDebug()<<ui->setLowPowMessFreqLineEdit->text();
 /*还有许多按钮等widget没有被显式的连接相应的信号与槽，原因是定义了符合qt规则的标准槽函数
  * qt会直接将这些按钮的信号与槽函数默认隐式绑定，如果再显示的绑定反而会使信号重复触发
@@ -506,7 +508,7 @@ void Widget::on_serverConnectted()
     logText.append("下位机连接成功!------>["+ui->IPLineEdit->text()+":"+ui->PortLineEdit->text()+"]");
     ui->logPlainTextEdit->appendPlainText(logText);
 
-    //TODO:TCP连接成功后自动发起一次获取设备物理参数请求,获取其设备状态用于其他各项信息显示
+    //TCP连接成功后自动发起一次获取设备物理参数请求,获取其设备状态用于其他各项信息显示
     QByteArray packet;
     packet.append(buildCmdPktHeader(CMD_GET_DEV_PHY_PARAMETERS,devID));
     // 包总长度（4字节，包头12B + 数据1B = 13 → 0x0D）
@@ -546,6 +548,8 @@ void Widget::on_serverDisconnectted()
     ui->lowPowerModeBtn->setCheckable(false);
     ui->netStateLitLabel ->setPixmap(greyLit.scaled(60,60));//设置网络状态指示灯为灰色,表示断开连接
     ui->devStateLitLabel ->setPixmap(greyLit.scaled(60,60));//设置设备状态指示灯为灰色,表示断开连接
+
+    timer.stop();
 
     //TODO：下位机断开连接，相关的标志量要全部清空
 
@@ -802,6 +806,13 @@ void Widget::parseOtherResponse(QByteArray response, devPhysicsParameter *phyPar
             ui->devStateLitLabel->setPixmap(yellowLit.scaled(60,60));//设备状态指示灯变为绿色
             ui->normalModeBtn->setChecked(false);
             ui->lowPowerModeBtn->setChecked(true);
+        }
+
+        if(!timer_on_flag)
+        {
+            qDebug()<<"timer_on_flag"<<timer_on_flag;
+            setGetDevInfoFreq();//开启定时器，定时获取设备参数
+            timer_on_flag=true;
         }
 
     }
@@ -1363,4 +1374,55 @@ float Widget::readFromJson(QString key) {
     }
 
     return floatValue;
+}
+
+/**
+ * @brief：根据设备当前工作模式设置自动获取设备物理信息频次，并开启定时器
+ * @param：无
+ * @retval：无
+ */
+void Widget::setGetDevInfoFreq()
+{
+    float time=0;
+    if(LOW_POWER_MODE==devStateSet)
+    {
+        time=readFromJson("LowPowMessFreq");
+    }else if(NORMAL_MODE==devStateSet)
+    {
+        time=readFromJson("NormalMessFreq");
+    }
+    qDebug()<<"time:"<<time;
+    timer.setInterval((int)(1000*time));//将秒转换为ms
+
+    // 启动定时器
+    timer.start();
+}
+
+/**
+ * @brief:定时获取设备信息槽函数
+ * @param:无
+ * @retval：无
+*/
+void Widget::get_devPhyParam_timeout()
+{
+    //通过tcp发送获取信息命令即可
+    QByteArray packet;
+    packet.append(buildCmdPktHeader(CMD_GET_DEV_PHY_PARAMETERS,devID));
+    // 包总长度（4字节，包头12B + 数据1B = 13 → 0x0D）
+    uint32_t totalLength = 13;
+    packet.append(reinterpret_cast<char*>(&totalLength), 4);
+    // 数据内容（1字节）
+    packet.append(0xff);
+    qDebug()<<"packet:"<<hexToFormatStr(packet);
+    qint64 bytesWritten =socket->write(packet);
+    sendCmdFlag=TCP_SEND_GET_PHY_PARAMETER;
+    if (bytesWritten == -1)
+    {
+        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "自动获取设备物理参数失败：" + socket->errorString());
+        sendCmdFlag=TCP_UNANSWER_STATE;
+    }
+    else
+    {
+        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "自动获取设备物理参数成功！" );
+    }
 }
