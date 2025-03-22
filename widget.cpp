@@ -751,7 +751,8 @@ void Widget::parseOtherResponse(QByteArray response, devPhysicsParameter *phyPar
 {
     if(response.size()< static_cast<int>(sizeof(devPhysicsParameter)))
     {
-        QMessageBox::information(this,"警告","下位机响应回复物理参数数据包长度有误!");
+        ui->logPlainTextEdit->appendPlainText(getTimestamp()+"下位机响应回复物理参数数据包长度有误!");
+//        QMessageBox::information(this,"警告","下位机响应回复物理参数数据包长度有误!");
         return;
     }
     else
