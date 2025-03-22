@@ -795,17 +795,26 @@ void Widget::parseOtherResponse(QByteArray response, devPhysicsParameter *phyPar
 
         ui->normalModeBtn->setCheckable(true);
         ui->lowPowerModeBtn->setCheckable(true);
-        if(NORMAL_MODE==phyPara->workMode)
+
+        if(NORMAL_MODE==phyPara->workMode||DATA_CONLLECT_START_MODE==phyPara->workMode)
         {
             ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//设备状态指示灯变为绿色
             ui->normalModeBtn->setChecked(true);
             ui->lowPowerModeBtn->setChecked(false);
+            devStateSet=NORMAL_MODE;
         }
         else if(LOW_POWER_MODE==phyPara->workMode)
         {
             ui->devStateLitLabel->setPixmap(yellowLit.scaled(60,60));//设备状态指示灯变为绿色
             ui->normalModeBtn->setChecked(false);
             ui->lowPowerModeBtn->setChecked(true);
+            devStateSet=LOW_POWER_MODE;
+        }else if(DATA_CONLLECT_START_MODE==phyPara->workMode)
+        {
+            ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//设备状态指示灯变为绿色
+            ui->normalModeBtn->setChecked(true);
+            ui->lowPowerModeBtn->setChecked(false);
+            devStateSet=DATA_CONLLECT_START_MODE;
         }
 
         if(!timer_on_flag)
@@ -1233,8 +1242,10 @@ void Widget::on_setNormalMessFreqBtn_clicked()
 {
     // 获取 QLineEdit 中的数据
     QString data = ui->setNormalMessFreqLineEdit->text();
-
     saveToJson("NormalMessFreq", data);
+
+    //设置定时时间后更新定时器间隔
+    setGetDevInfoFreq();
 
 }
 
@@ -1242,8 +1253,10 @@ void Widget::on_setLowPowMessFreqBtn_clicked()
 {
     // 获取 QLineEdit 中的数据
     QString data = ui->setLowPowMessFreqLineEdit->text();
-
     saveToJson("LowPowMessFreq", data);
+
+    //设置定时时间后更新定时器间隔
+    setGetDevInfoFreq();
 }
 
 /**
@@ -1383,15 +1396,17 @@ float Widget::readFromJson(QString key) {
  */
 void Widget::setGetDevInfoFreq()
 {
-    float time=0;
+    float time=2;
     if(LOW_POWER_MODE==devStateSet)
     {
+        qDebug()<<"timer interval mode: Low pwr";
         time=readFromJson("LowPowMessFreq");
-    }else if(NORMAL_MODE==devStateSet)
+    }else if(NORMAL_MODE==devStateSet||DATA_CONLLECT_START_MODE==devStateSet)
     {
+        qDebug()<<"timer interval mode: normal";
         time=readFromJson("NormalMessFreq");
     }
-    qDebug()<<"time:"<<time;
+    qDebug()<<"timer interval:"<<time;
     timer.setInterval((int)(1000*time));//将秒转换为ms
 
     // 启动定时器
