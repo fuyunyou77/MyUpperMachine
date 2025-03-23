@@ -163,6 +163,7 @@ void Widget::on_normalModeBtn_clicked()
             ui->logPlainTextEdit->appendPlainText(getTimestamp() + "Hex:"+hexPacket);
 
             //发送成功，更改相应的标志量设置
+
             devStateSet=NORMAL_MODE;
             sendCmdFlag=TCP_SEND_DEFAULT_STATE;
             changeWorkModeFlag=true;
@@ -226,6 +227,7 @@ void Widget::on_lowPowerModeBtn_clicked()
             QString hexPacket=hexToFormatStr(packet);
             ui->logPlainTextEdit->appendPlainText(getTimestamp() + "Hex:"+hexPacket);
             //更改标志量设置
+
             devStateSet=LOW_POWER_MODE;
             sendCmdFlag=TCP_SEND_DEFAULT_STATE;
             changeWorkModeFlag=true;
@@ -612,13 +614,13 @@ void Widget::on_socketReadyRead()
         switch (sendCmdFlag) {
             case TCP_SEND_DEFAULT_STATE://默认响应
                 parseDefalutResponse(response);
-                sendCmdFlag = TCP_UNANSWER_STATE;
+
                 break;
 
             case TCP_SEND_GET_PHY_PARAMETER://获取物理参数响应
                 qDebug() << "处理设备物理参数响应!";
                 parseOtherResponse(response, &phyPara);
-                sendCmdFlag = TCP_UNANSWER_STATE;
+
                 break;
 
             case TCP_SEND_GET_WORK_PARAMETER://获取工作参数响应
@@ -657,13 +659,14 @@ void Widget::on_socketReadyRead()
 
 void Widget::parseDefalutResponse(QByteArray response)
 {
+    sendCmdFlag = TCP_UNANSWER_STATE;
     uint8_t tcpRespond = static_cast<uint8_t>(response.at(0));
     QString logText = getTimestamp();
 
     switch (tcpRespond) {
 
     case 0:
-    case 2:
+//    case 2:
         logText += "设置成功!";
         if(NORMAL_MODE==devStateSet)//正常工作模式设置成功
         {
@@ -753,6 +756,8 @@ void Widget::parseDefalutResponse(QByteArray response)
 //实现接收数据包解析,将结构体指针与数据包对齐
 void Widget::parseOtherResponse(QByteArray response, devPhysicsParameter *phyPara)
 {
+    qDebug()<< "get phy param response sendcmdflag:"<<sendCmdFlag;
+    sendCmdFlag = TCP_UNANSWER_STATE;
     if(response.size()< static_cast<int>(sizeof(devPhysicsParameter)))
     {
         ui->logPlainTextEdit->appendPlainText(getTimestamp()+"下位机响应回复物理参数数据包长度有误!");
@@ -761,6 +766,7 @@ void Widget::parseOtherResponse(QByteArray response, devPhysicsParameter *phyPar
     }
     else
     {
+
         qDebug() << "Size of devPhysicsParameter:" << sizeof(devPhysicsParameter);
         memcpy(phyPara,response.constData(),sizeof(devPhysicsParameter));
 
