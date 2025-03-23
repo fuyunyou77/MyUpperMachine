@@ -163,7 +163,7 @@ void Widget::on_normalModeBtn_clicked()
             ui->logPlainTextEdit->appendPlainText(getTimestamp() + "Hex:"+hexPacket);
 
             //发送成功，更改相应的标志量设置
-
+            timer.setInterval((int)(1000*readFromJson("NormalMessFreq")));//重新设置自动获取参数间隔
             devStateSet=NORMAL_MODE;
             sendCmdFlag=TCP_SEND_DEFAULT_STATE;
             changeWorkModeFlag=true;
@@ -227,7 +227,7 @@ void Widget::on_lowPowerModeBtn_clicked()
             QString hexPacket=hexToFormatStr(packet);
             ui->logPlainTextEdit->appendPlainText(getTimestamp() + "Hex:"+hexPacket);
             //更改标志量设置
-
+            timer.setInterval((int)(1000*readFromJson("LowPowMessFreq")));//重新设置自动获取参数间隔
             devStateSet=LOW_POWER_MODE;
             sendCmdFlag=TCP_SEND_DEFAULT_STATE;
             changeWorkModeFlag=true;
