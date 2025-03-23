@@ -246,7 +246,8 @@ void Widget::on_connectBtn_clicked()
     QString IP = ui->IPLineEdit->text();
     QString port = ui->PortLineEdit->text();
     QString recvMask=ui->MaskLineEdit->text();
-    QString recvID=ui->devIDLineEdit->text();
+//    QString recvID=ui->devIDLineEdit->text();
+    QString recvID="255";
 
     if(QAbstractSocket::ConnectedState==socket->state())
     {
