@@ -502,8 +502,7 @@ void Widget::on_serverConnectted()
 //    ui->normalModeBtn->setChecked(true);
 //    ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//初始连接板卡时，板卡一定为正常模式，设备状态显示绿灯
 
-    ui->netStateLitLabel ->setPixmap(yellowLit.scaled(60,60));//设置指示灯为黄色常亮,表示连接
-
+    ui->netStateLitLabel ->setPixmap(greenLit.scaled(60,60));//网络指示灯为黄色常亮,表示连接
 
     //在日志栏打印信息
     QString logText=getTimestamp();
@@ -520,7 +519,7 @@ void Widget::on_serverConnectted()
     packet.append(0xff);
     qDebug()<<"packet:"<<hexToFormatStr(packet);
     qint64 bytesWritten =socket->write(packet);
-    sendCmdFlag=TCP_SEND_GET_PHY_PARAMETER;
+
     if (bytesWritten == -1)
     {
         ui->logPlainTextEdit->appendPlainText(getTimestamp() + "获取设备初始物理参数失败：" + socket->errorString());
@@ -528,6 +527,7 @@ void Widget::on_serverConnectted()
     }
     else
     {
+        sendCmdFlag=TCP_SEND_GET_PHY_PARAMETER;
         ui->logPlainTextEdit->appendPlainText(getTimestamp() + "获取设备初始物理参数成功！" );
     }
     //TODO:掩码需要可以自定义,此处实现需要修改
@@ -613,7 +613,6 @@ void Widget::on_socketReadyRead()
         switch (sendCmdFlag) {
             case TCP_SEND_DEFAULT_STATE://默认响应
                 parseDefalutResponse(response);
-
                 break;
 
             case TCP_SEND_GET_PHY_PARAMETER://获取物理参数响应
@@ -819,16 +818,10 @@ void Widget::parseOtherResponse(QByteArray response, devPhysicsParameter *phyPar
         else if(LOW_POWER_MODE==phyPara->workMode)
         {
             timer.setInterval((int)(1000*readFromJson("LowPowMessFreq")));//重新设置自动获取参数间隔
-            ui->devStateLitLabel->setPixmap(yellowLit.scaled(60,60));//设备状态指示灯变为绿色
+            ui->devStateLitLabel->setPixmap(yellowLit.scaled(60,60));//设备状态指示灯变为黄色
             ui->normalModeBtn->setChecked(false);
             ui->lowPowerModeBtn->setChecked(true);
             devStateSet=LOW_POWER_MODE;
-        }else if(DATA_CONLLECT_START_MODE==phyPara->workMode)
-        {
-            ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//设备状态指示灯变为绿色
-            ui->normalModeBtn->setChecked(true);
-            ui->lowPowerModeBtn->setChecked(false);
-            devStateSet=DATA_CONLLECT_START_MODE;
         }
 
         if(!timer_on_flag&&!timer_stop_flag)
