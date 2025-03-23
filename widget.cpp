@@ -644,14 +644,16 @@ void Widget::on_socketReadyRead()
                 break;
 
             default:
+                qDebug()<<"上位机处于异常的TCP接受状态!无法解析数据包!";
                 qDebug() << "sendCmdFlag:" << sendCmdFlag;
-                QMessageBox::information(this, "警告", "上位机处于异常的TCP接受状态!无法解析数据包!");
+//                QMessageBox::information(this, "警告", "上位机处于异常的TCP接受状态!无法解析数据包!");
                 break;
         }
     }
     else
     {
-        QMessageBox::information(this,"警告","下位机响应数据无效!查看日志输出获取详细信息");
+        qDebug()<<"下位机响应数据无效!查看日志输出获取详细信息";
+        //QMessageBox::information(this,"警告","下位机响应数据无效!查看日志输出获取详细信息");
     }
 }
 
