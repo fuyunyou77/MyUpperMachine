@@ -149,8 +149,8 @@ void Widget::on_normalModeBtn_clicked()
         uint32_t totalLength = 13;
         packet.append(reinterpret_cast<char*>(&totalLength), 4);
         // 数据内容（1字节）
-//        packet.append(static_cast<char>(NORMAL_MODE));
-        packet.append(static_cast<char>(0x00));//00为正常模式
+        packet.append(static_cast<char>(NORMAL_MODE));
+//        packet.append(static_cast<char>(0x00));//00为正常模式
 
         //将数据通过tcp发出,根据返回值打印日志信息
         qint64 bytesWritten = socket->write(packet);
@@ -213,8 +213,8 @@ void Widget::on_lowPowerModeBtn_clicked()
         uint32_t totalLength = 13;
         packet.append(reinterpret_cast<char*>(&totalLength), 4);
         // 数据内容（1字节）
-//        packet.append(static_cast<char>(LOW_POWER_MODE));
-        packet.append(static_cast<char>(0x01));//01为低功耗模式
+        packet.append(static_cast<char>(LOW_POWER_MODE));
+//        packet.append(static_cast<char>(0x01));//01为低功耗模式
 
         //将数据通过tcp发出,根据返回值打印日志信息
         qint64 bytesWritten = socket->write(packet);
@@ -1337,10 +1337,10 @@ bool Widget::saveToJson(QString key,QString value)
     if (file.open(QIODevice::WriteOnly)) {
         file.write(jsonDoc.toJson());
         file.close();
-        QMessageBox::information(this, "注意", "保存成功!");
+        QMessageBox::information(this, "注意", "设置并保存成功!");
         return true;
     } else {
-        QMessageBox::warning(this, "注意", "保存成功!");
+        QMessageBox::warning(this, "注意", "设置或保存失败!");
         return false;
     }
 }
@@ -1415,7 +1415,7 @@ void Widget::setGetDevInfoFreq()
     timer.start();
 }
 
-//TODO:定时获取设备信息和手动获取，以及其他TCP命令有可能冲突，可能涉及线程安全问题
+//WARNING:定时获取设备信息和手动获取，以及其他TCP命令有可能冲突，可能涉及线程安全问题
 /**
  * @brief:定时获取设备信息槽函数
  * @param:无
@@ -1444,3 +1444,15 @@ void Widget::get_devPhyParam_timeout()
         ui->logPlainTextEdit->appendPlainText(getTimestamp() + "自动获取设备物理参数成功！" );
     }
 }
+
+/**
+ * @brief：停止自动获取设备信息槽函数
+ * @param：无
+ * @retval：无
+*/
+void Widget::on_stopTimerBtn_clicked()
+{
+    timer.stop();
+    timer_on_flag=false;
+}
+

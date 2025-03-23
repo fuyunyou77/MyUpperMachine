@@ -124,6 +124,8 @@ private slots:
     void on_setLowPowMessFreqBtn_clicked();//设置低功耗模式信息获取频次按钮槽函数
     void get_devPhyParam_timeout();//定时获取设备信息槽函数
 
+    void on_stopTimerBtn_clicked();
+
 private:
     Ui::Widget *ui;
 
