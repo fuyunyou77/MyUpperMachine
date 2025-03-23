@@ -133,6 +133,7 @@ private:
     QPixmap greyLit;
     QPixmap greenLit;
     QPixmap yellowLit;
+    QPixmap redLit;
     QString mask="255.255.255.0";
     uint8_t devID=0xff;
     bool timer_on_flag=false;

@@ -7,6 +7,7 @@ Widget::Widget(QWidget *parent)
     , greyLit(":/icon/grey_light.png")
     , greenLit(":/icon/green_light.png")
     , yellowLit(":/icon/yellow_light.png")
+    , redLit(":/icon/red_light.png")
 {
     ui->setupUi(this);
 
@@ -549,6 +550,7 @@ void Widget::on_serverDisconnectted()
     ui->lowPowerModeBtn->setCheckable(false);
     ui->netStateLitLabel ->setPixmap(greyLit.scaled(60,60));//设置网络状态指示灯为灰色,表示断开连接
     ui->devStateLitLabel ->setPixmap(greyLit.scaled(60,60));//设置设备状态指示灯为灰色,表示断开连接
+    ui->batStateLitLabel ->setPixmap(greyLit.scaled(60,60));//设置电池状态指示灯为灰色,表示断开连接
 
     timer.stop();
     timer_on_flag=false;
@@ -786,11 +788,13 @@ void Widget::parseOtherResponse(QByteArray response, devPhysicsParameter *phyPar
         ui->BatVolLineEdit->setText(QString::number(phyPara->batVol, 'f', 2) + " V");//显示电池电压
         if((float)(phyPara->batPercent)<=readFromJson("VolThreshold"))
         {
-            ui->BatPercentLineEdit->setText(QString::number(phyPara->batPercent) + " % !电量低!");
+            ui->BatPercentLineEdit->setText(QString::number(phyPara->batPercent) + " % !电量低!");//显示电池百分比，并显示报警文字
+            ui->batStateLitLabel->setPixmap(redLit.scaled(60,60));
         }
         else
         {
             ui->BatPercentLineEdit->setText(QString::number(phyPara->batPercent) + " %");//显示电池百分比
+            ui->batStateLitLabel->setPixmap(greenLit.scaled(60,60));
         }
         ui->CurrentLineEdit->setText(QString::number(phyPara->current, 'f', 2) + " A");//显示板卡电流
         ui->TemperLineEdit->setText(QString::number(phyPara->temperature, 'f', 2) + " °C");//显示板卡温度
