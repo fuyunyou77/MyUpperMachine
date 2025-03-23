@@ -137,6 +137,7 @@ private:
     QString mask="255.255.255.0";
     uint8_t devID=0xff;
     bool timer_on_flag=false;
+    bool timer_stop_flag=false;
 
     //TODO:设备模式从设备获取更安全,设备出现故障一上电就是低功耗模式,那么这个预设就是有问题的
     WorkMode devStateSet=UNKNOWN_MODE;//设备上电是正常工作模式

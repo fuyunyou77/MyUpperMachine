@@ -554,6 +554,7 @@ void Widget::on_serverDisconnectted()
 
     timer.stop();
     timer_on_flag=false;
+    timer_stop_flag=false;
     //TODO:下位机断开连接，相关的标志量要全部清空
 
     //打印日志
@@ -823,7 +824,7 @@ void Widget::parseOtherResponse(QByteArray response, devPhysicsParameter *phyPar
             devStateSet=DATA_CONLLECT_START_MODE;
         }
 
-        if(!timer_on_flag)
+        if(!timer_on_flag&&!timer_stop_flag)
         {
             qDebug()<<"timer_on_flag"<<timer_on_flag;
             setGetDevInfoFreq();//开启定时器，定时获取设备参数
@@ -1417,6 +1418,7 @@ void Widget::setGetDevInfoFreq()
 
     // 启动定时器
     timer.start();
+    timer_stop_flag=false;
 }
 
 //WARNING:定时获取设备信息和手动获取，以及其他TCP命令有可能冲突，可能涉及线程安全问题
@@ -1458,5 +1460,6 @@ void Widget::on_stopTimerBtn_clicked()
 {
     timer.stop();
     timer_on_flag=false;
+    timer_stop_flag=true;
 }
 
