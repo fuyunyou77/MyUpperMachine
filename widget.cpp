@@ -163,7 +163,6 @@ void Widget::on_normalModeBtn_clicked()
             ui->logPlainTextEdit->appendPlainText(getTimestamp() + "Hex:"+hexPacket);
 
             //发送成功，更改相应的标志量设置
-            timer.setInterval((int)(1000*readFromJson("NormalMessFreq")));//重新设置自动获取参数间隔
             devStateSet=NORMAL_MODE;
             sendCmdFlag=TCP_SEND_DEFAULT_STATE;
             changeWorkModeFlag=true;
@@ -227,7 +226,6 @@ void Widget::on_lowPowerModeBtn_clicked()
             QString hexPacket=hexToFormatStr(packet);
             ui->logPlainTextEdit->appendPlainText(getTimestamp() + "Hex:"+hexPacket);
             //更改标志量设置
-            timer.setInterval((int)(1000*readFromJson("LowPowMessFreq")));//重新设置自动获取参数间隔
             devStateSet=LOW_POWER_MODE;
             sendCmdFlag=TCP_SEND_DEFAULT_STATE;
             changeWorkModeFlag=true;
@@ -596,7 +594,9 @@ void Widget::on_socketReadyRead()
 
     if(TCP_UNANSWER_STATE==sendCmdFlag)
     {
-        QMessageBox::information(this,"警告","下位机在无TCP请求时进行了响应\n请确认下位机是否正常工作!");
+        //FIXME:下位机多次上报有时会出现在TCP_UNANSWER_STATE下响应，需要确认自动获取参数时的sendCmdFlag置位操作
+//        QMessageBox::information(this,"警告","下位机在无TCP请求时进行了响应\n请确认下位机是否正常工作!");
+        ui->logPlainTextEdit->appendPlainText(getTimestamp()+"下位机在无TCP请求时进行了响应\n请确认下位机是否正常工作!");
         return;
     }
 
@@ -605,7 +605,6 @@ void Widget::on_socketReadyRead()
         //去除收到的数据包头,存放在header中,其他功能可能会用
         qDebug()<<"response:"<<response.toHex();
         response=removeCmdPktHeader(response,&header);
-        qDebug()<<"response:"<<response.toHex();
 
         /*根据上位机发送给下位机命令的不同，sendCmdFlag会在发送命令时被赋给不同的值，可选值由TcpSendCmdType枚举类型约束。
          *接收到TCP响应后，数据进入该函数被解析，根据sendCmdFlag的不同，进入不同的分支被解析。分别实现不同的解析函数。
@@ -811,6 +810,7 @@ void Widget::parseOtherResponse(QByteArray response, devPhysicsParameter *phyPar
 
         if(NORMAL_MODE==phyPara->workMode||DATA_CONLLECT_START_MODE==phyPara->workMode)
         {
+            timer.setInterval((int)(1000*readFromJson("NormalMessFreq")));//重新设置自动获取参数间隔
             ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//设备状态指示灯变为绿色
             ui->normalModeBtn->setChecked(true);
             ui->lowPowerModeBtn->setChecked(false);
@@ -818,6 +818,7 @@ void Widget::parseOtherResponse(QByteArray response, devPhysicsParameter *phyPar
         }
         else if(LOW_POWER_MODE==phyPara->workMode)
         {
+            timer.setInterval((int)(1000*readFromJson("LowPowMessFreq")));//重新设置自动获取参数间隔
             ui->devStateLitLabel->setPixmap(yellowLit.scaled(60,60));//设备状态指示灯变为绿色
             ui->normalModeBtn->setChecked(false);
             ui->lowPowerModeBtn->setChecked(true);

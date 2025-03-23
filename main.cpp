@@ -6,7 +6,7 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
     //设置应用名称和版本号
     a.setApplicationName("数据采集助手");
-    a.setApplicationVersion("0.5.0");
+    a.setApplicationVersion("0.5.1");
 
     Widget w;
     // 设置窗口标题，动态获取应用名称和版本号
