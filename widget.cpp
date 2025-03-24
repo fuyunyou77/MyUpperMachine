@@ -796,7 +796,7 @@ void Widget::parseOtherResponse(QByteArray response, devPhysicsParameter *phyPar
         ui->BatVolLineEdit->setText(QString::number(phyPara->batVol, 'f', 2) + " V");//显示电池电压
         if((float)(phyPara->batPercent)<=readFromJson("VolThreshold"))
         {
-            ui->BatPercentLineEdit->setText(QString::number(phyPara->batPercent) + " % !电量低!");//显示电池百分比，并显示报警文字
+            ui->BatPercentLineEdit->setText(QString::number(phyPara->batPercent) + " %");//显示电池百分比，并显示报警文字
             ui->batStateLitLabel->setPixmap(redLit.scaled(60,60));
         }
         else
