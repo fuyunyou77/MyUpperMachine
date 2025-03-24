@@ -1244,8 +1244,18 @@ void Widget::on_setVolThresholdBtn_clicked()
 {
     // 获取 QLineEdit 中的数据
     QString data = ui->setVolThresholdBtnLineEdit->text();
-
+    float currentData=phyPara.batPercent;
+    qDebug()<<"data:"<<data<<"\ncurrentData:"<<currentData;
     saveToJson("VolThreshold", data);
+    //WARNING：未判断toFloat是否成功
+    if(currentData<=(data.toFloat()))//当前电量小于阈值
+    {
+        ui->batStateLitLabel->setPixmap(redLit.scaled(60,60));//红灯
+    }
+    else
+    {
+        ui->batStateLitLabel->setPixmap(greenLit.scaled(60,60));//绿灯
+    }
 }
 
 void Widget::on_setNormalMessFreqBtn_clicked()
