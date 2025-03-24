@@ -547,7 +547,7 @@
           <number>5</number>
          </property>
          <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_17">
+          <layout class="QHBoxLayout" name="horizontalLayout_17" stretch="0,0">
            <property name="spacing">
             <number>2</number>
            </property>
@@ -564,20 +564,13 @@
             <number>5</number>
            </property>
            <item>
-            <spacer name="horizontalSpacer_3">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+            <widget class="QLabel" name="stateLabel_1">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
              </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item>
-            <widget class="QLabel" name="label_17">
              <property name="minimumSize">
               <size>
                <width>0</width>
@@ -604,7 +597,7 @@
            <item>
             <widget class="QLabel" name="batStateLitLabel">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
@@ -629,23 +622,10 @@
              </property>
             </widget>
            </item>
-           <item>
-            <spacer name="horizontalSpacer_4">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
           </layout>
          </item>
          <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_13">
+          <layout class="QHBoxLayout" name="horizontalLayout_13" stretch="0,0">
            <property name="spacing">
             <number>2</number>
            </property>
@@ -662,20 +642,13 @@
             <number>5</number>
            </property>
            <item>
-            <spacer name="horizontalSpacer_5">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+            <widget class="QLabel" name="stateLabel_2">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
              </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item>
-            <widget class="QLabel" name="label_10">
              <property name="minimumSize">
               <size>
                <width>0</width>
@@ -702,7 +675,7 @@
            <item>
             <widget class="QLabel" name="netStateLitLabel">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
@@ -727,28 +700,15 @@
              </property>
             </widget>
            </item>
-           <item>
-            <spacer name="horizontalSpacer_6">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
           </layout>
          </item>
          <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_14" stretch="0,0,0,0">
+          <layout class="QHBoxLayout" name="horizontalLayout_14" stretch="0,0">
            <property name="spacing">
             <number>2</number>
            </property>
            <property name="sizeConstraint">
-            <enum>QLayout::SetDefaultConstraint</enum>
+            <enum>QLayout::SetMinimumSize</enum>
            </property>
            <property name="leftMargin">
             <number>5</number>
@@ -763,20 +723,13 @@
             <number>5</number>
            </property>
            <item>
-            <spacer name="horizontalSpacer_9">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+            <widget class="QLabel" name="stateLabel_3">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
              </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item>
-            <widget class="QLabel" name="label_9">
              <property name="minimumSize">
               <size>
                <width>0</width>
@@ -803,7 +756,7 @@
            <item>
             <widget class="QLabel" name="devStateLitLabel">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
@@ -827,19 +780,6 @@
               <bool>true</bool>
              </property>
             </widget>
-           </item>
-           <item>
-            <spacer name="horizontalSpacer_10">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
            </item>
           </layout>
          </item>

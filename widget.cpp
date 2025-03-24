@@ -12,7 +12,13 @@ Widget::Widget(QWidget *parent)
     ui->setupUi(this);
 
     uiInit();//调用初始化函数初始化ui
-
+    //设置label宽度
+    //TODO：放到uiInit函数中
+    QFontMetrics metrics(ui->stateLabel_1->font());
+    int textWidth = metrics.horizontalAdvance("电量状态");
+    ui->stateLabel_1->setFixedWidth(textWidth + 2); // 增加额外宽度
+    ui->stateLabel_2->setFixedWidth(textWidth + 2); // 增加额外宽度
+    ui->stateLabel_3->setFixedWidth(textWidth + 2); // 增加额外宽度
     //创建Socket对象
     socket = new QTcpSocket;
 
