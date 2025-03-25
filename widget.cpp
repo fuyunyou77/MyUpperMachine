@@ -786,7 +786,7 @@ void Widget::parseOtherResponse(QByteArray response, devPhysicsParameter *phyPar
         ui->logPlainTextEdit->appendPlainText(getTimestamp()+"获取板卡物理参数如下:");
 
         ui->logPlainTextEdit->appendPlainText("工作模式: " + QString::number(phyPara->workMode));
-        ui->logPlainTextEdit->appendPlainText("板卡电流: " + QString::number(phyPara->current, 'f', 2) + " A");
+
         qDebug() << "phyPara->batPercent:"<<phyPara->batPercent;
         //限定电压的最大最小值，大于最大值
         if(phyPara->batVol>12.48f)
@@ -815,9 +815,14 @@ void Widget::parseOtherResponse(QByteArray response, devPhysicsParameter *phyPar
             ui->BatPercentLineEdit->setText(QString::number(phyPara->batPercent) + " %");//显示电池百分比
             ui->batStateLitLabel->setPixmap(greenLit.scaled(60,60));
         }
+        //功耗限制在16.2w
+        if(16.2<=(phyPara->current)*(phyPara->batVol))
+        {
+            phyPara->current=16.2/phyPara->batVol;
+        }
         ui->CurrentLineEdit->setText(QString::number(phyPara->current, 'f', 2) + " A");//显示板卡电流
         ui->TemperLineEdit->setText(QString::number(phyPara->temperature, 'f', 2) + " °C");//显示板卡温度
-
+        ui->logPlainTextEdit->appendPlainText("板卡电流: " + QString::number(phyPara->current, 'f', 2) + " A");
         ui->normalModeBtn->setCheckable(true);
         ui->lowPowerModeBtn->setCheckable(true);
 
