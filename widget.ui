@@ -167,7 +167,7 @@
               </font>
              </property>
              <property name="text">
-              <string>12.48 V</string>
+              <string/>
              </property>
              <property name="readOnly">
               <bool>false</bool>
@@ -284,7 +284,7 @@
               </font>
              </property>
              <property name="text">
-              <string>100%</string>
+              <string/>
              </property>
              <property name="readOnly">
               <bool>false</bool>
@@ -404,7 +404,7 @@
               </font>
              </property>
              <property name="text">
-              <string>0.25 A</string>
+              <string/>
              </property>
              <property name="readOnly">
               <bool>false</bool>
@@ -521,7 +521,7 @@
               </font>
              </property>
              <property name="text">
-              <string>32 ℃</string>
+              <string/>
              </property>
              <property name="readOnly">
               <bool>false</bool>

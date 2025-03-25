@@ -564,6 +564,11 @@ void Widget::on_serverDisconnectted()
     timer_stop_flag=false;
     //TODO:下位机断开连接，相关的标志量要全部清空
 
+    ui->BatPercentLineEdit->clear();
+    ui->BatVolLineEdit->clear();
+    ui->CurrentLineEdit->clear();
+    ui->TemperLineEdit->clear();
+
     //打印日志
     QString logText=getTimestamp();
     logText.append("下位机连接断开!--\\\\-->["+ui->IPLineEdit->text()+":"+ui->PortLineEdit->text()+"]");
