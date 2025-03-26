@@ -107,7 +107,7 @@
               </size>
              </property>
              <property name="text">
-              <string>192.168.1.1</string>
+              <string>192.168.17.ID</string>
              </property>
             </widget>
            </item>
@@ -341,7 +341,7 @@
               </size>
              </property>
              <property name="text">
-              <string>255</string>
+              <string/>
              </property>
              <property name="readOnly">
               <bool>false</bool>
