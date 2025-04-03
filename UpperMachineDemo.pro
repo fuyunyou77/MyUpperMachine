@@ -11,11 +11,13 @@ CONFIG += c++11
 
 SOURCES += \
     cmdBuild.cpp \
+    configmanager.cpp \
     main.cpp \
     widget.cpp
 
 HEADERS += \
     cmdBuild.h \
+    configmanager.h \
     widget.h
 
 FORMS += \
