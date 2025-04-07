@@ -9,6 +9,7 @@ Widget::Widget(QWidget *parent)
     , yellowLit(":/icon/yellow_light.png")
     , redLit(":/icon/red_light.png")
 {
+    configManager = new ConfigManager;
     ui->setupUi(this);
 
     uiInit();//调用初始化函数初始化ui
@@ -49,6 +50,12 @@ Widget::Widget(QWidget *parent)
 
     connect(&timer, &QTimer::timeout,this,&Widget::get_devPhyParam_timeout);
 
+    //连接json处理信号和槽函数
+    connect(configManager,&ConfigManager::initJsonResult,this,&Widget::initJsonResultHandler);
+    connect(configManager,&ConfigManager::readFromJsonFail,this,&Widget::readFromJsonFailHandler);
+//    connect(configManager,&ConfigManager::readFromJsonSuccess,this,&Widget::readFromJsonSuccessHandler);
+    connect(configManager,&ConfigManager::saveToJsonResult,this,&Widget::saveToJsonResultHandler);
+
     qDebug()<<"setLowPowMessFreq from lineedit :"<<ui->setLowPowMessFreqLineEdit->text();
 /*还有许多按钮等widget没有被显式的连接相应的信号与槽，原因是定义了符合qt规则的标准槽函数
  * qt会直接将这些按钮的信号与槽函数默认隐式绑定，如果再显示的绑定反而会使信号重复触发
@@ -69,14 +76,15 @@ void Widget::uiInit()
     //设置自定义命令模块的布局
     SelfDfnCmdArealayout();
 
+
     //初始化json文件
-    if(true==initJson())
+    if(true==configManager->initJson())
     {
 
         //将预设值填入ui对应栏位
-        ui->setVolThresholdBtnLineEdit->setText(QString::number( readFromJson("VolThreshold")));
-        ui->setNormalMessFreqLineEdit->setText(QString::number( readFromJson("NormalMessFreq")));
-        ui->setLowPowMessFreqLineEdit->setText(QString::number( readFromJson("LowPowMessFreq")));
+        ui->setVolThresholdBtnLineEdit->setText(QString::number( configManager->readFromJson("VolThreshold")));
+        ui->setNormalMessFreqLineEdit->setText(QString::number( configManager->readFromJson("NormalMessFreq")));
+        ui->setLowPowMessFreqLineEdit->setText(QString::number( configManager->readFromJson("LowPowMessFreq")));
     }
     else
     {
@@ -805,7 +813,7 @@ void Widget::parseOtherResponse(QByteArray response, devPhysicsParameter *phyPar
 
         //将物理参数显示在对应的文本框
         ui->BatVolLineEdit->setText(QString::number(phyPara->batVol, 'f', 2) + " V");//显示电池电压
-        if((float)(phyPara->batPercent)<=readFromJson("VolThreshold"))
+        if((float)(phyPara->batPercent)<=configManager->readFromJson("VolThreshold"))
         {
             ui->BatPercentLineEdit->setText(QString::number(phyPara->batPercent) + " %");//显示电池百分比，并显示报警文字
             ui->batStateLitLabel->setPixmap(redLit.scaled(60,60));
@@ -828,7 +836,7 @@ void Widget::parseOtherResponse(QByteArray response, devPhysicsParameter *phyPar
 
         if(NORMAL_MODE==phyPara->workMode||DATA_CONLLECT_START_MODE==phyPara->workMode)
         {
-            timer.setInterval((int)(1000*readFromJson("NormalMessFreq")));//重新设置自动获取参数间隔
+            timer.setInterval((int)(1000*configManager->readFromJson("NormalMessFreq")));//重新设置自动获取参数间隔
             ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//设备状态指示灯变为绿色
             ui->normalModeBtn->setChecked(true);
             ui->lowPowerModeBtn->setChecked(false);
@@ -836,7 +844,7 @@ void Widget::parseOtherResponse(QByteArray response, devPhysicsParameter *phyPar
         }
         else if(LOW_POWER_MODE==phyPara->workMode)
         {
-            timer.setInterval((int)(1000*readFromJson("LowPowMessFreq")));//重新设置自动获取参数间隔
+            timer.setInterval((int)(1000*configManager->readFromJson("LowPowMessFreq")));//重新设置自动获取参数间隔
             ui->devStateLitLabel->setPixmap(yellowLit.scaled(60,60));//设备状态指示灯变为黄色
             ui->normalModeBtn->setChecked(false);
             ui->lowPowerModeBtn->setChecked(true);
@@ -1245,11 +1253,7 @@ void Widget::clearSelfDfnCmdBtn_clicked()
 
 }
 
-QString Widget::getConfigFilePath() {
-    // 获取应用程序的工作目录
-    QDir dir(QApplication::applicationDirPath());
-    return dir.filePath("config.json");
-}
+
 
 /**
  * @brief：设置电压阈值按钮槽函数
@@ -1262,7 +1266,7 @@ void Widget::on_setVolThresholdBtn_clicked()
     QString data = ui->setVolThresholdBtnLineEdit->text();
     float currentData=phyPara.batPercent;
     qDebug()<<"data:"<<data<<"\ncurrentData:"<<currentData;
-    saveToJson("VolThreshold", data);
+    configManager->saveToJson("VolThreshold", data);
     //WARNING：未判断toFloat是否成功
     if(QAbstractSocket::ConnectedState==socket->state())
     {
@@ -1283,7 +1287,7 @@ void Widget::on_setNormalMessFreqBtn_clicked()
 {
     // 获取 QLineEdit 中的数据
     QString data = ui->setNormalMessFreqLineEdit->text();
-    saveToJson("NormalMessFreq", data);
+    configManager->saveToJson("NormalMessFreq", data);
 
     //设置定时时间后更新定时器间隔
     setGetDevInfoFreq();
@@ -1294,141 +1298,12 @@ void Widget::on_setLowPowMessFreqBtn_clicked()
 {
     // 获取 QLineEdit 中的数据
     QString data = ui->setLowPowMessFreqLineEdit->text();
-    saveToJson("LowPowMessFreq", data);
+    configManager->saveToJson("LowPowMessFreq", data);
 
     //设置定时时间后更新定时器间隔
     setGetDevInfoFreq();
 }
 
-/**
- * @brief:初始化config.json
- * @param:无
- * @retval:无
- */
-bool Widget::initJson()
-{
-    // 获取文件路径
-        QString filePath = getConfigFilePath();
-        QFile file(filePath);
-
-        // 如果文件不存在，则写入预设值
-        if (!file.exists()) {
-
-            // 创建预设的 JSON 对象
-            QJsonObject presetJson;
-            presetJson["VolThreshold"] = "20";
-            presetJson["NormalMessFreq"] = "2";
-            presetJson["LowPowMessFreq"] = "5";
-
-            // 将 JSON 对象转换为 JSON 文档
-            QJsonDocument jsonDoc(presetJson);
-
-            // 以写入模式打开文件
-            if (file.open(QIODevice::WriteOnly)) {
-                // 写入 JSON 数据到文件
-                file.write(jsonDoc.toJson());
-                file.close();
-                ui->logPlainTextEdit->appendPlainText(getTimestamp()+"INIT:Success!JSON file created with preset values !");
-                return true;
-            } else {
-                ui->logPlainTextEdit->appendPlainText(getTimestamp()+"INIT:Failed to create JSON file!");
-                return false;
-            }
-        }
-
-        // 如果文件存在，则保持不变
-        ui->logPlainTextEdit->appendPlainText(getTimestamp()+"INIT:JSON file already exists. No changes made.");
-
-        return true;
-}
-
-
-/**
- * @brief：将数据保存在json文件中
- * @param：QString key：要保存的内容：json格式key-value中的key
- * @param：QString value：要保存的内容：json格式key-value中的value
- * @retval: bool true成功，false失败
-*/
-bool Widget::saveToJson(QString key,QString value)
-{
-    // 读取现有 JSON 文件内容
-    QFile file(getConfigFilePath());
-    QJsonObject jsonObject;
-
-    if (file.exists() && file.open(QIODevice::ReadOnly)) {
-        QByteArray jsonData = file.readAll();
-        file.close();
-
-        // 解析现有 JSON 数据
-        QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData);
-        if (!jsonDoc.isNull() && jsonDoc.isObject()) {
-            jsonObject = jsonDoc.object();
-        }
-    }
-
-    // 添加新的 key-value 对
-    jsonObject[key] = value;
-
-    // 将 JSON 对象转换为 JSON 文档
-    QJsonDocument jsonDoc(jsonObject);
-
-    // 保存到文件
-    if (file.open(QIODevice::WriteOnly)) {
-        file.write(jsonDoc.toJson());
-        file.close();
-        QMessageBox::information(this, "注意", "设置并保存成功!");
-        return true;
-    } else {
-        QMessageBox::warning(this, "注意", "设置或保存失败!");
-        return false;
-    }
-}
-
-/**
- * @brief：从 JSON 文件中读取指定 key 的值，并转换为浮点数
- * @param：QString key：要读取的 key
- * @retval: float 转换后的浮点数，如果失败则返回默认值
- */
-float Widget::readFromJson(QString key) {
-    // 打开 JSON 文件
-    QFile file(getConfigFilePath());
-    if (!file.exists() || !file.open(QIODevice::ReadOnly)) {
-        QMessageBox::warning(this, "Error", "Failed to open JSON file!");
-        return 0.0f; // 返回默认值
-    }
-
-    // 读取文件内容
-    QByteArray jsonData = file.readAll();
-    file.close();
-
-    // 解析 JSON 数据
-    QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData);
-    if (jsonDoc.isNull() || !jsonDoc.isObject()) {
-        QMessageBox::warning(this, "Error", "Invalid JSON format!");
-        return 0.0f; // 返回默认值
-    }
-
-    // 获取 JSON 对象
-    QJsonObject jsonObject = jsonDoc.object();
-
-    // 检查 key 是否存在
-    if (!jsonObject.contains(key)) {
-        QMessageBox::warning(this, "Error", QString("Key '%1' not found in JSON file!").arg(key));
-        return 0.0f; // 返回默认值
-    }
-
-    // 获取值并转换为浮点数
-    QString value = jsonObject[key].toString();
-    bool ok;
-    float floatValue = value.toFloat(&ok);
-
-    if (!ok) {
-        QMessageBox::warning(this, "Error", QString("Failed to convert value of key '%1' to float!").arg(key));
-        return 0.0f; // 返回默认值
-    }
-
-    return floatValue;
-}
 
 /**
  * @brief：根据设备当前工作模式设置自动获取设备物理信息频次，并开启定时器
@@ -1441,11 +1316,11 @@ void Widget::setGetDevInfoFreq()
     if(LOW_POWER_MODE==devStateSet)
     {
         qDebug()<<"timer interval mode: Low pwr";
-        time=readFromJson("LowPowMessFreq");
+        time=configManager->readFromJson("LowPowMessFreq");
     }else if(NORMAL_MODE==devStateSet||DATA_CONLLECT_START_MODE==devStateSet)
     {
         qDebug()<<"timer interval mode: normal";
-        time=readFromJson("NormalMessFreq");
+        time=configManager->readFromJson("NormalMessFreq");
     }
     qDebug()<<"timer interval:"<<time;
     timer.setInterval((int)(1000*time));//将秒转换为ms
@@ -1497,3 +1372,12 @@ void Widget::on_stopTimerBtn_clicked()
     timer_stop_flag=true;
 }
 
+void Widget::initJsonResultHandler(const QString &result)
+{
+    ui->logPlainTextEdit->appendPlainText(getTimestamp() +result);
+}
+
+void Widget::readFromJsonFailHandler(const QString &result)
+{
+    ui->logPlainTextEdit->appendPlainText(getTimestamp() +result);
+}
