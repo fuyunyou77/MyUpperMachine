@@ -9,8 +9,14 @@ Widget::Widget(QWidget *parent)
     , yellowLit(":/icon/yellow_light.png")
     , redLit(":/icon/red_light.png")
 {
-    configManager = new ConfigManager;
     ui->setupUi(this);
+    configManager = new ConfigManager;
+
+    //连接json处理信号和槽函数
+    connect(configManager,&ConfigManager::initJsonResult,this,&Widget::initJsonResultHandler);
+    connect(configManager,&ConfigManager::readFromJsonFail,this,&Widget::readFromJsonFailHandler);
+//    connect(configManager,&ConfigManager::readFromJsonSuccess,this,&Widget::readFromJsonSuccessHandler);
+    connect(configManager,&ConfigManager::saveToJsonResult,this,&Widget::saveToJsonResultHandler);
 
     uiInit();//调用初始化函数初始化ui
     //设置label宽度
@@ -50,11 +56,6 @@ Widget::Widget(QWidget *parent)
 
     connect(&timer, &QTimer::timeout,this,&Widget::get_devPhyParam_timeout);
 
-    //连接json处理信号和槽函数
-    connect(configManager,&ConfigManager::initJsonResult,this,&Widget::initJsonResultHandler);
-    connect(configManager,&ConfigManager::readFromJsonFail,this,&Widget::readFromJsonFailHandler);
-//    connect(configManager,&ConfigManager::readFromJsonSuccess,this,&Widget::readFromJsonSuccessHandler);
-    connect(configManager,&ConfigManager::saveToJsonResult,this,&Widget::saveToJsonResultHandler);
 
     qDebug()<<"setLowPowMessFreq from lineedit :"<<ui->setLowPowMessFreqLineEdit->text();
 /*还有许多按钮等widget没有被显式的连接相应的信号与槽，原因是定义了符合qt规则的标准槽函数
@@ -75,7 +76,6 @@ void Widget::uiInit()
 
     //设置自定义命令模块的布局
     SelfDfnCmdArealayout();
-
 
     //初始化json文件
     if(true==configManager->initJson())
@@ -1374,10 +1374,12 @@ void Widget::on_stopTimerBtn_clicked()
 
 void Widget::initJsonResultHandler(const QString &result)
 {
+    qDebug()<<"initJsonResultHandler";
     ui->logPlainTextEdit->appendPlainText(getTimestamp() +result);
 }
 
 void Widget::readFromJsonFailHandler(const QString &result)
 {
+    qDebug()<<"readFromJsonFailHandler";
     ui->logPlainTextEdit->appendPlainText(getTimestamp() +result);
 }
