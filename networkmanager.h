@@ -2,6 +2,9 @@
 #define NETWORKMANAGER_H
 
 #include <QFlags>
+#include <QObject>
+#include <QTcpSocket>
+
 
 #define CMD_PORT 21079//命令端口
 #define DATA_PORT 21081//数据流端口
@@ -43,10 +46,35 @@ enum TcpSendCmdType : uint8_t{
 };
 
 
-class NetworkManager
+class NetworkManager:public QObject
 {
+    Q_OBJECT
 public:
     NetworkManager();
+    QTcpSocket *socket;
+    QString mask="255.255.255.0";
+    uint8_t connectToHost(QString IP,QString Port);
+
+private:
+    QString hexToFormatStr(QByteArray);//将接收数据包格式化的函数,方便log打印和阅读
+    TcpSendCmdType CmdTcpType(uint8_t cmdHeader);//判断发出的数据包的类型，与不同的命令相对应
+    bool isStringInvalid(QString sendText);//判断作为TCP命令被发送的字符串是否非法
+
+    //进行TCP连接前相关输入的检查
+    //bool isIPv4Address(const QString &ip);//宽松的ipv4检查
+    bool isIPv4AddressEx(const QString &ip,//FIXME:严格的ipv4检查(对于整个网段的ip无法判断)
+                        IPv4ValidationFlags flags,//给出不同的IPv4ValidationFlag枚举类型的组合，以允许不同的ip
+                        quint32 network ,       // 网络地址（需配合掩码使用）
+                        quint32 mask); // 子网掩码（默认不检查网络地址）
+    bool isPortValid(const QString &port, bool allowZero);//判断端口号是否合法
+    bool isValidSubnetMask(const QString &input);//判断子网掩码是否合法
+
+private slots:
+    void on_serverConnectted();//TCP成功连接
+    void on_serverDisconnectted();//TCP断开连接
+    void on_serverConnectError();//TCP连接错误
+
+    void on_socketReadyRead(); // 处理下位机响应报文，并传给相应的parse函数
 };
 
 #endif // NETWORKMANAGER_H

@@ -4,13 +4,8 @@
 #include <QWidget>
 #include <QProcess>
 #include <QMessageBox>
-#include <QTcpSocket>
-//#include <QTcpServer>
-#include <QHostAddress>
 #include <QDateTime>
-#include <QtEndian>
 #include <QRegularExpression>
-#include <QTextEdit>
 #include <QPlainTextEdit>
 #include <QTableWidget>
 #include <QLineEdit>
@@ -51,13 +46,13 @@ public:
 private:
     Ui::Widget *ui;
     ConfigManager *configManager;
-    QTcpSocket *socket;
+
     QPixmap greyLit;
     QPixmap greenLit;
     QPixmap yellowLit;
     QPixmap redLit;
-    QString mask="255.255.255.0";
-    uint8_t devID=0xff;
+
+
     bool timer_on_flag=false;
     bool timer_stop_flag=false;
 
@@ -105,22 +100,6 @@ private:
     void parseOtherResponse(QByteArray response,softwareVersion *sfVersion);
     void parseOtherResponse(QByteArray response,devWorkParameter *devWorkParam);
 
-    QString hexToFormatStr(QByteArray);//将接收数据包格式化的函数,方便log打印和阅读
-    TcpSendCmdType CmdTcpType(uint8_t cmdHeader);//判断发出的数据包的类型，与不同的命令相对应
-    bool isStringInvalid(QString sendText);//判断作为TCP命令被发送的字符串是否非法
-
-    //进行TCP连接前相关输入的检查
-    //bool isIPv4Address(const QString &ip);//宽松的ipv4检查
-    bool isIPv4AddressEx(const QString &ip,//FIXME:严格的ipv4检查(对于整个网段的ip无法判断)
-                        IPv4ValidationFlags flags,//给出不同的IPv4ValidationFlag枚举类型的组合，以允许不同的ip
-                        quint32 network ,       // 网络地址（需配合掩码使用）
-                        quint32 mask); // 子网掩码（默认不检查网络地址）
-    bool isPortValid(const QString &port, bool allowZero);//判断端口号是否合法
-    bool isDevIDValid(const QString &devID);//判断设备id是否合法
-    bool isValidSubnetMask(const QString &input);//判断子网掩码是否合法
-
-
-
     void setGetDevInfoFreq();//设置自动获取设备物理信息频次
 
 private slots:
@@ -128,12 +107,6 @@ private slots:
     void on_lowPowerModeBtn_clicked();//低功耗模式按钮
     void on_connectBtn_clicked();//开启TCP连接按钮
     void on_disconnectBtn_clicked();//断开TCP连接按钮
-
-    void on_serverConnectted();//TCP成功连接
-    void on_serverDisconnectted();//TCP断开连接
-    void on_serverConnectError();//TCP连接错误
-
-    void on_socketReadyRead(); // 处理下位机响应报文，并传给相应的parse函数
 
     void on_sendBtn_clicked();//处理发送按钮按下槽函数
 
