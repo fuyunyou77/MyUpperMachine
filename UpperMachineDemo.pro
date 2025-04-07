@@ -13,11 +13,13 @@ SOURCES += \
     cmdBuild.cpp \
     configmanager.cpp \
     main.cpp \
+    networkmanager.cpp \
     widget.cpp
 
 HEADERS += \
     cmdBuild.h \
     configmanager.h \
+    networkmanager.h \
     widget.h
 
 FORMS += \
