@@ -4,10 +4,10 @@
 Widget::Widget(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::Widget)
-    , greyLit(":/icon/grey_light.png")
-    , greenLit(":/icon/green_light.png")
-    , yellowLit(":/icon/yellow_light.png")
-    , redLit(":/icon/red_light.png")
+//    , greyLit(":/icon/grey_light.png")
+//    , greenLit(":/icon/green_light.png")
+//    , yellowLit(":/icon/yellow_light.png")
+//    , redLit(":/icon/red_light.png")
 {
     ui->setupUi(this);
     configManager = new ConfigManager;
@@ -19,13 +19,7 @@ Widget::Widget(QWidget *parent)
     connect(configManager,&ConfigManager::saveToJsonResult,this,&Widget::saveToJsonResultHandler);
 
     uiInit();//调用初始化函数初始化ui
-    //设置label宽度
-    //TODO：放到uiInit函数中
-    QFontMetrics metrics(ui->stateLabel_1->font());
-    int textWidth = metrics.horizontalAdvance("电量状态");
-    ui->stateLabel_1->setFixedWidth(textWidth + 2); // 增加额外宽度
-    ui->stateLabel_2->setFixedWidth(textWidth + 2); // 增加额外宽度
-    ui->stateLabel_3->setFixedWidth(textWidth + 2); // 增加额外宽度
+
     //创建Socket对象
     socket = new QTcpSocket;
 
@@ -68,8 +62,29 @@ Widget::~Widget()
     delete ui;
 }
 
+/**
+ * @brief:ui初始化，设置label宽度，设置状态灯图片，初始化config.json文件，设置自定义命令模块的布局
+ * @param:无
+ * @retval:无
+ */
 void Widget::uiInit()
 {
+    greyLit.load(":/icon/grey_light.png");
+    greenLit.load(":/icon/green_light.png");
+    yellowLit.load(":/icon/yellow_light.png");
+    redLit.load(":/icon/red_light.png");
+    //设置状态提示label宽度
+    QFontMetrics metrics(ui->stateLabel_1->font());
+    int textWidth = metrics.horizontalAdvance("电量状态");
+    ui->stateLabel_1->setFixedWidth(textWidth + 2); // 增加额外宽度
+    ui->stateLabel_2->setFixedWidth(textWidth + 2); // 增加额外宽度
+    ui->stateLabel_3->setFixedWidth(textWidth + 2); // 增加额外宽度
+
+    //状态灯label上放上图片
+    ui->devStateLitLabel->setPixmap(greyLit.scaled(60,60));//设备状态
+    ui->netStateLitLabel ->setPixmap(greyLit.scaled(60,60));//网络状态
+    ui->batStateLitLabel ->setPixmap(greyLit.scaled(60,60));//电量状态
+
     //设置模式控制按钮的选中状态
     ui->normalModeBtn->setCheckable(false);
     ui->lowPowerModeBtn->setCheckable(false);
@@ -80,7 +95,6 @@ void Widget::uiInit()
     //初始化json文件
     if(true==configManager->initJson())
     {
-
         //将预设值填入ui对应栏位
         ui->setVolThresholdBtnLineEdit->setText(QString::number( configManager->readFromJson("VolThreshold")));
         ui->setNormalMessFreqLineEdit->setText(QString::number( configManager->readFromJson("NormalMessFreq")));
@@ -89,20 +103,12 @@ void Widget::uiInit()
     else
     {
         QMessageBox::warning(this,"警告","config.json创建失败,请手动添加!");
-
     }
-
-    //label上放上图片
-    ui->devStateLitLabel->setPixmap(greyLit.scaled(60,60));//设备状态
-    ui->netStateLitLabel ->setPixmap(greyLit.scaled(60,60));//网络状态
-    ui->batStateLitLabel ->setPixmap(greyLit.scaled(60,60));//电量状态
 
 }
 
-
 void Widget::SelfDfnCmdArealayout(void)
 {
-
     //创建布局
     QVBoxLayout *selfDfnCmdVlayout = new QVBoxLayout(ui->SelfDefineCmdArea);
     QHBoxLayout *selfDfnCmdHlayout1 = new QHBoxLayout();
@@ -132,7 +138,8 @@ void Widget::SelfDfnCmdArealayout(void)
 }
 
 /**
- * @brief：设置普通模式按钮槽函数：1.发送“正常模式设置命令”
+ * @brief：设置普通模式按钮槽函数：
+ * 1.发送“正常模式设置命令”
  * 2.更新标志量
  *@param ：无
  *@retval：无
