@@ -30,21 +30,34 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(IPv4ValidationFlags)
 enum TcpSendCmdType : uint8_t{
     TCP_UNANSWER_STATE=0x00,//无响应状态,初始默认状态,在该状态下上位机没有发出tcp请求,下位机不应该有tcp响应
     TCP_SEND_DEFAULT_STATE=0xFF,//默认回复状态，单片机只会回复一个字节的0或1
-    TCP_SEND_SET_FACTORY_IP = 0xC1,//设置出厂ip
-    TCP_SEND_FACTORY_CALIBRATION = 0xC2,//设置出厂校准
-    TCP_SEND_DATA_COLLECTION = 0xC3,//采集命令
-    TCP_SEND_SET_WORK_PARAMETER = 0xC4,//设置设备工作参数
-    TCP_SEND_GET_WORK_PARAMETER=0xC5,//获取设备工作参数
-    TCP_SEND_GET_SATELLITE_INFO=0xC6,//获取卫星信息
-    TCP_SEND_GET_DEVICE_STATUS=0xC7,//获取设备状态信息
-    TCP_SEND_NETWORK_TIME_SYNC = 0xC8,//网络时间同步
-    TCP_SEND_FORCE_UPDATE_POSITION = 0xC9,//强制更新位置
-    TCP_SEND_EXCHANGE_SOFTWARE_VERSION=0xCF,//双向发送软件版本
-    TCP_SEND_REPORT_COLLECTION_DATA = 0xDA,//上报采集数据
     TCP_SEND_GET_PHY_PARAMETER=0XCA,//获取设备物理参数命令
     TCP_SEND_SET_DEV_WORKMODE=0xF1//设置设备工作模式
 };
 
+// 命令字枚举类型定义
+enum CommandWord : uint8_t {
+    CMD_SET_WORK_MODE = 0xF1,
+    CMD_GET_DEV_PHY_PARAMETERS = 0XCA
+};
+
+#pragma pack(push, 1)
+//定义不同的结构体存储不同的回复数据
+typedef struct {
+    uint16_t startFlag;//开始标志
+    CommandWord cmdWord;//命令字
+    uint8_t devID;//设备ID
+    uint32_t time;//时间
+    uint32_t packetLength;//数据包长度(包头+数据)
+} CmdPacketHeader;//命令数据包头结构体
+
+typedef struct {
+    uint8_t workMode;//工作模式
+    float current;//板卡电流
+    uint8_t batPercent;//电池百分比
+    float batVol;//电池电压
+    float temperature;//板卡温度
+} devPhysicsParameter;//设备物理参数结构体
+#pragma pack(pop)
 
 class NetworkManager:public QObject
 {
@@ -56,6 +69,11 @@ public:
     uint8_t connectToHost(QString IP,QString Port);
 
 private:
+    //该值用来记录tcp发出的命令，在tcp数据接受函数中使用该标志量决定调用什么函数处理回复的消息
+    TcpSendCmdType sendCmdFlag=TCP_UNANSWER_STATE;
+    //定义各种结构体用来存储和解析下位机数据包内容
+    devPhysicsParameter phyPara;//设备物理参数结构体
+
     QString hexToFormatStr(QByteArray);//将接收数据包格式化的函数,方便log打印和阅读
     TcpSendCmdType CmdTcpType(uint8_t cmdHeader);//判断发出的数据包的类型，与不同的命令相对应
     bool isStringInvalid(QString sendText);//判断作为TCP命令被发送的字符串是否非法
@@ -69,12 +87,22 @@ private:
     bool isPortValid(const QString &port, bool allowZero);//判断端口号是否合法
     bool isValidSubnetMask(const QString &input);//判断子网掩码是否合法
 
+    QString getTimestamp();
+    QByteArray buildCmdPktHeader(CommandWord cmd,uint8_t devID);
+    QByteArray removeCmdPktHeader(QByteArray response,CmdPacketHeader *header);
+
 private slots:
     void on_serverConnectted();//TCP成功连接
     void on_serverDisconnectted();//TCP断开连接
     void on_serverConnectError();//TCP连接错误
 
     void on_socketReadyRead(); // 处理下位机响应报文，并传给相应的parse函数
+
+    //处理不同的命令对应的数据包
+    //处理默认数据包，数据部分只有0或1的数据TCP response被称为默认数据包，可以统一处理
+    void parseDefalutResponse(QByteArray response);
+    //重载以处理其他数据部分不同的数据包，与不同的结构体相对应
+    void parseOtherResponse(QByteArray response,devPhysicsParameter *phyPara);
 };
 
 #endif // NETWORKMANAGER_H
