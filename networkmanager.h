@@ -4,7 +4,7 @@
 #include <QFlags>
 #include <QObject>
 #include <QTcpSocket>
-
+#include <QHostAddress>
 
 #define CMD_PORT 21079//命令端口
 #define DATA_PORT 21081//数据流端口
@@ -66,16 +66,17 @@ public:
     NetworkManager();
     QTcpSocket *socket;
     QString mask="255.255.255.0";
-    uint8_t connectToHost(QString IP,QString Port);
-
-private:
-    //该值用来记录tcp发出的命令，在tcp数据接受函数中使用该标志量决定调用什么函数处理回复的消息
-    TcpSendCmdType sendCmdFlag=TCP_UNANSWER_STATE;
-    //定义各种结构体用来存储和解析下位机数据包内容
+    CmdPacketHeader header;
     devPhysicsParameter phyPara;//设备物理参数结构体
 
+    uint8_t connectToHost(QString IP,QString Port);
+    uint8_t sendCmdToHost(QString sendText);
+    QByteArray buildCmdPktHeader(CommandWord cmd);
     QString hexToFormatStr(QByteArray);//将接收数据包格式化的函数,方便log打印和阅读
-    TcpSendCmdType CmdTcpType(uint8_t cmdHeader);//判断发出的数据包的类型，与不同的命令相对应
+    qint64 tcp_getDevPhyParam();
+    //该值用来记录tcp发出的命令，在tcp数据接受函数中使用该标志量决定调用什么函数处理回复的消息
+    TcpSendCmdType sendCmdFlag=TCP_UNANSWER_STATE;
+
     bool isStringInvalid(QString sendText);//判断作为TCP命令被发送的字符串是否非法
 
     //进行TCP连接前相关输入的检查
@@ -87,22 +88,32 @@ private:
     bool isPortValid(const QString &port, bool allowZero);//判断端口号是否合法
     bool isValidSubnetMask(const QString &input);//判断子网掩码是否合法
 
-    QString getTimestamp();
-    QByteArray buildCmdPktHeader(CommandWord cmd,uint8_t devID);
+signals:
+    void HostConnectted(qint64 bytesWritten);
+    void HostDisconnectted();
+    void HostConnectError();
+    void TcpHexResponse(QByteArray response);
+    void WorkmodeSetResponse(QByteArray response);
+    void PhyParamResponse(QByteArray response,devPhysicsParameter *phyPara);
+
+private:
+
+
+    uint8_t CmdTcpType(uint8_t cmdHeader);//判断发出的数据包的类型，与不同的命令相对应
     QByteArray removeCmdPktHeader(QByteArray response,CmdPacketHeader *header);
 
 private slots:
-    void on_serverConnectted();//TCP成功连接
-    void on_serverDisconnectted();//TCP断开连接
-    void on_serverConnectError();//TCP连接错误
+    void on_hostConnectted();//TCP成功连接
+    void on_hostDisconnectted();//TCP断开连接
+    void on_hostConnectError();//TCP连接错误
 
     void on_socketReadyRead(); // 处理下位机响应报文，并传给相应的parse函数
 
     //处理不同的命令对应的数据包
     //处理默认数据包，数据部分只有0或1的数据TCP response被称为默认数据包，可以统一处理
-    void parseDefalutResponse(QByteArray response);
+    void parseWorkmodeSetResponse(QByteArray response);
     //重载以处理其他数据部分不同的数据包，与不同的结构体相对应
-    void parseOtherResponse(QByteArray response,devPhysicsParameter *phyPara);
+    void parsePhyParamResponse(QByteArray response,devPhysicsParameter *phyPara);
 };
 
 #endif // NETWORKMANAGER_H

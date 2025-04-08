@@ -11,7 +11,7 @@ Widget::Widget(QWidget *parent)
 {
     ui->setupUi(this);
     configManager = new ConfigManager;
-
+    networkManager =new NetworkManager;
     //连接json处理信号和槽函数
     connect(configManager,&ConfigManager::initJsonResult,this,&Widget::initJsonResultHandler);
     connect(configManager,&ConfigManager::readFromJsonFail,this,&Widget::readFromJsonFailHandler);
@@ -19,8 +19,6 @@ Widget::Widget(QWidget *parent)
     connect(configManager,&ConfigManager::saveToJsonResult,this,&Widget::saveToJsonResultHandler);
 
     uiInit();//调用初始化函数初始化ui
-
-
 
     //日志区清空按钮
     connect(ui->logClearBtn,&QPushButton::clicked,[this]()
@@ -37,6 +35,14 @@ Widget::Widget(QWidget *parent)
     connect(saveSelfDfnCmdBtn,&QPushButton::clicked,this,&Widget::saveSelfDfnCmdBtn_clicked);
     connect(clearSelfDfnCmdBtn,&QPushButton::clicked,this,&Widget::clearSelfDfnCmdBtn_clicked);
     connect(addSelfDfnCmdBtn,&QPushButton::clicked,this,&Widget::addSelfDfnCmdBtn_clicked);
+
+    //tcp连接状态处理函数
+    connect(networkManager,&NetworkManager::HostConnectted,this,&Widget::HostConnecttedHandler);
+    connect(networkManager,&NetworkManager::HostDisconnectted,this,&Widget::HostDisconnecttedHandler);
+    connect(networkManager,&NetworkManager::HostConnectError,this,&Widget::HostConnectErrorHandler);
+
+    connect(networkManager,&NetworkManager::WorkmodeSetResponse,this,&Widget::WorkmodeSetResponseHandler);
+    connect(networkManager,&NetworkManager::PhyParamResponse,this,&Widget::PhyParamResponseHandler);
 
     connect(&timer, &QTimer::timeout,this,&Widget::get_devPhyParam_timeout);
 
@@ -136,7 +142,7 @@ void Widget::SelfDfnCmdArealayout(void)
 */
 void Widget::on_normalModeBtn_clicked()
 {
-    if(socket->state()==QAbstractSocket::UnconnectedState)
+    if(networkManager->socket->state()==QAbstractSocket::UnconnectedState)
     {
         qDebug()<<"normalModeBtn";
         QMessageBox::information(this,"错误","未连接单片机");
@@ -156,7 +162,7 @@ void Widget::on_normalModeBtn_clicked()
         QByteArray packet;
 
         //开始构造数据包
-        packet.append(buildCmdPktHeader(CMD_SET_WORK_MODE,devID));
+        packet.append(networkManager->buildCmdPktHeader(CMD_SET_WORK_MODE));
         // 包总长度（4字节，包头12B + 数据1B = 13 → 0x0D）
         uint32_t totalLength = 13;
         packet.append(reinterpret_cast<char*>(&totalLength), 4);
@@ -165,34 +171,23 @@ void Widget::on_normalModeBtn_clicked()
 //        packet.append(static_cast<char>(0x00));//00为正常模式
 
         //将数据通过tcp发出,根据返回值打印日志信息
-        qint64 bytesWritten = socket->write(packet);
+        qint64 bytesWritten = networkManager->socket->write(packet);
         if (bytesWritten == -1) {
-            ui->logPlainTextEdit->appendPlainText(getTimestamp() + "发送失败: " + socket->errorString());
+            ui->logPlainTextEdit->appendPlainText(getTimestamp() + "发送失败: " + networkManager->socket->errorString());
         } else {
             ui->logPlainTextEdit->appendPlainText(getTimestamp() + "发送成功！正在设置为正常工作模式...");
-            QString hexPacket=hexToFormatStr(packet);
+            QString hexPacket=networkManager->hexToFormatStr(packet);
             ui->logPlainTextEdit->appendPlainText(getTimestamp() + "Hex:"+hexPacket);
 
             //发送成功，更改相应的标志量设置
             devStateSet=NORMAL_MODE;
-            sendCmdFlag=TCP_SEND_DEFAULT_STATE;
+            networkManager->sendCmdFlag=TCP_SEND_DEFAULT_STATE;
             changeWorkModeFlag=true;
         }
     }
 }
 
-/**
- * @brief:将输入的二级制串转换为 以空格分割字节的 全大写的 格式化字符串,方便log打印和阅读
- * eg:(QByteArray)0x123456ef->(QString)12 34 56 EF
- * @param:QByteArray packet 数据包
- * @retval:QString 格式化的数据包字符串
-*/
-QString Widget::hexToFormatStr(QByteArray packet)
-{
-    QString formatPacket=packet.toHex().toUpper();
-    formatPacket=formatPacket.replace(QRegularExpression("(..)"),"\\1 ").trimmed();
-    return formatPacket;
-}
+
 
 /*@brief：设置低功耗模式按钮槽函数：
  * 1.发送“低功耗模式设置命令”
@@ -203,7 +198,7 @@ QString Widget::hexToFormatStr(QByteArray packet)
 void Widget::on_lowPowerModeBtn_clicked()
 {
 
-    if(socket->state()==QAbstractSocket::UnconnectedState)
+    if(networkManager->socket->state()==QAbstractSocket::UnconnectedState)
     {
         qDebug()<<"lowPowerModeBtn";
         QMessageBox::information(this,"错误","未连接单片机");
@@ -220,7 +215,7 @@ void Widget::on_lowPowerModeBtn_clicked()
         }
 
         QByteArray packet;
-        packet.append(buildCmdPktHeader(CMD_SET_WORK_MODE,devID));
+        packet.append(networkManager->buildCmdPktHeader(CMD_SET_WORK_MODE));
         // 包总长度（4字节，包头12B + 数据1B = 13 → 0x0D）
         uint32_t totalLength = 13;
         packet.append(reinterpret_cast<char*>(&totalLength), 4);
@@ -229,16 +224,16 @@ void Widget::on_lowPowerModeBtn_clicked()
 //        packet.append(static_cast<char>(0x01));//01为低功耗模式
 
         //将数据通过tcp发出,根据返回值打印日志信息
-        qint64 bytesWritten = socket->write(packet);
+        qint64 bytesWritten = networkManager->socket->write(packet);
         if (bytesWritten == -1) {
-            ui->logPlainTextEdit->appendPlainText(getTimestamp() + "发送失败: " + socket->errorString());
+            ui->logPlainTextEdit->appendPlainText(getTimestamp() + "发送失败: " + networkManager->socket->errorString());
         } else {
             ui->logPlainTextEdit->appendPlainText(getTimestamp() + "发送成功！正在设置为低功耗模式...");
-            QString hexPacket=hexToFormatStr(packet);
+            QString hexPacket=networkManager->hexToFormatStr(packet);
             ui->logPlainTextEdit->appendPlainText(getTimestamp() + "Hex:"+hexPacket);
             //更改标志量设置
             devStateSet=LOW_POWER_MODE;
-            sendCmdFlag=TCP_SEND_DEFAULT_STATE;
+            networkManager->sendCmdFlag=TCP_SEND_DEFAULT_STATE;
             changeWorkModeFlag=true;
         }
     }
@@ -260,7 +255,7 @@ void Widget::on_connectBtn_clicked()
 //    QString recvID=ui->devIDLineEdit->text();
     QString recvID="255";
 
-    if(QAbstractSocket::ConnectedState==socket->state())
+    if(QAbstractSocket::ConnectedState==networkManager->socket->state())
     {
         QMessageBox::information(this,"注意","已经连接下位机,请先断开连接!");
         return;
@@ -273,18 +268,18 @@ void Widget::on_connectBtn_clicked()
     }
 
     //子网掩码可以为空,此时使用默认的子网掩码255.255.255.0
-    if(!recvMask.isEmpty() && !isValidSubnetMask(recvMask))
+    if(!recvMask.isEmpty() && ! networkManager->isValidSubnetMask(recvMask))
     {
         QMessageBox::information(this,"注意","输入的子网掩码无效!");
         return;
     }
-    else if(isValidSubnetMask(recvMask))//如果子网掩码为空,使用接收到的子网掩码代替存储的子网掩码
+    else if(networkManager->isValidSubnetMask(recvMask))//如果子网掩码为空,使用接收到的子网掩码代替存储的子网掩码
     {
-        mask=recvMask;
+        networkManager->mask=recvMask;
     }
 
     //TODO:在此处处理子网掩码将Qstring类型转换为quint32传递给下面的ipv4验证代码
-    if(!isIPv4AddressEx(IP,
+    if(!networkManager->isIPv4AddressEx(IP,
                         AllowNormal|AllowLoopback|AllowMulticast,
                         0xC0A80000,//子网网段,192.168.0.0
                         0xFFFFFF00//子网掩码,255.255.255.0
@@ -295,14 +290,12 @@ void Widget::on_connectBtn_clicked()
     }
 
 
-    qDebug()<<"socket state:"<<socket->state();
+    qDebug()<<"socket state:"<<networkManager->socket->state();
     //连接服务器
-    socket->connectToHost(QHostAddress(IP),port.toUShort());
+    networkManager->socket->connectToHost(QHostAddress(IP),port.toUShort());
     ui->logPlainTextEdit->appendPlainText(getTimestamp()+"正在进行TCP连接...");
 
 }
-
-
 
 /**
  * @brief：下位机断开连接按钮槽函数：
@@ -313,18 +306,18 @@ void Widget::on_connectBtn_clicked()
 */
 void Widget::on_disconnectBtn_clicked()
 {  
-    QAbstractSocket::SocketState state=socket->state();
+    QAbstractSocket::SocketState state=networkManager->socket->state();
 
     if(QAbstractSocket::ConnectingState==state
        ||QAbstractSocket::HostLookupState==state)
     {
-        socket->abort();
+        networkManager->socket->abort();
         ui->logPlainTextEdit->appendPlainText(getTimestamp()+"已中断连接行为!");
         devStateSet=NORMAL_MODE;
     }
     else if(QAbstractSocket::ConnectedState==state)
     {
-        socket->disconnectFromHost();
+        networkManager->socket->disconnectFromHost();
         devStateSet=NORMAL_MODE;
     }
     else if(QAbstractSocket::UnconnectedState==state)
@@ -334,518 +327,65 @@ void Widget::on_disconnectBtn_clicked()
 }
 
 
-void Widget::parseDefalutResponse(QByteArray response)
-{
-    sendCmdFlag = TCP_UNANSWER_STATE;
-    uint8_t tcpRespond = static_cast<uint8_t>(response.at(0));
-    QString logText = getTimestamp();
-
-    switch (tcpRespond) {
-
-    case 0:
-//    case 2:
-        logText += "设置成功!";
-        if(NORMAL_MODE==devStateSet)//正常工作模式设置成功
-        {
-            //与工作模式切换相关的ui变化只有在确定发出来工作模式切换请求的情况下(标志量为真)才进行
-            if(true==changeWorkModeFlag)
-            {
-                ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//设备状态指示灯变为绿色
-                ui->normalModeBtn->setChecked(true);
-                ui->lowPowerModeBtn->setChecked(false);
-                changeWorkModeFlag=false;
-            }
-        }else if(LOW_POWER_MODE==devStateSet)//低功耗模式设置成功
-        {
-            if(true==changeWorkModeFlag)
-            {
-                ui->devStateLitLabel->setPixmap(yellowLit.scaled(60,60));//设备状态指示灯变为黄色
-                ui->normalModeBtn->setChecked(false);
-                ui->lowPowerModeBtn->setChecked(true);
-                changeWorkModeFlag=false;
-            }
-        }
-
-        break;
-    case 1:
-        logText += "设置失败!";
-
-        if(NORMAL_MODE==devStateSet)//正常模式设置失败
-        {
-            if(true==changeWorkModeFlag)
-            {
-                ui->devStateLitLabel->setPixmap(yellowLit.scaled(60,60));//设备状态指示灯变为黄色
-                ui->normalModeBtn->setChecked(false);
-                ui->lowPowerModeBtn->setChecked(true);
-                changeWorkModeFlag=false;
-                devStateSet=LOW_POWER_MODE;
-            }
-        }
-        else if(LOW_POWER_MODE==devStateSet)//低功耗模式设置失败
-        {
-            if(true==changeWorkModeFlag)
-            {
-                ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//设备状态指示灯变为绿色
-                ui->normalModeBtn->setChecked(true);
-                ui->lowPowerModeBtn->setChecked(false);
-                changeWorkModeFlag=false;
-                devStateSet=NORMAL_MODE;
-            }
-        }
-        //TODO:设备状态设置成功时,状态可知,可是没有一个参数用来表示设备当前的工作状态
-        break;
-//    case 2:
-//        logText += "数采启动中,请稍后操作...";
-//        if(NORMAL_MODE==devStateSet)//正常模式设置失败
-//        {
-//            if(true==changeWorkModeFlag)
-//            {
-//                ui->devStateLitLabel->setPixmap(yellowLit.scaled(60,60));//设备状态指示灯变为黄色
-//                ui->normalModeBtn->setChecked(false);
-//                ui->lowPowerModeBtn->setChecked(true);
-//                changeWorkModeFlag=false;
-//                devStateSet=LOW_POWER_MODE;
-//            }
-//        }
-//        else if(LOW_POWER_MODE==devStateSet)//低功耗模式设置失败
-//        {
-//            if(true==changeWorkModeFlag)
-//            {
-//                ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//设备状态指示灯变为绿色
-//                ui->normalModeBtn->setChecked(true);
-//                ui->lowPowerModeBtn->setChecked(false);
-//                changeWorkModeFlag=false;
-//                devStateSet=NORMAL_MODE;
-//            }
-//        }
-//        break;
-    default:
-        logText += "未知响应!";
-        break;
-    }
-
-    QString hexResponse=response.toHex();
-    logText.append("(Hex:"+hexResponse+")");
-
-    ui->logPlainTextEdit->appendPlainText(logText); // 记录日志
-}
-
-//实现接收数据包解析,将结构体指针与数据包对齐
-void Widget::parseOtherResponse(QByteArray response, devPhysicsParameter *phyPara)
-{
-    qDebug()<< "get phy param response sendcmdflag:"<<sendCmdFlag;
-    sendCmdFlag = TCP_UNANSWER_STATE;
-    if(response.size()< static_cast<int>(sizeof(devPhysicsParameter)))
-    {
-        ui->logPlainTextEdit->appendPlainText(getTimestamp()+"下位机响应回复物理参数数据包长度有误!");
-//        QMessageBox::information(this,"警告","下位机响应回复物理参数数据包长度有误!");
-        return;
-    }
-    else
-    {
-
-        qDebug() << "Size of devPhysicsParameter:" << sizeof(devPhysicsParameter);
-        memcpy(phyPara,response.constData(),sizeof(devPhysicsParameter));
-
-        //日志区打印设备物理参数
-        ui->logPlainTextEdit->appendPlainText(getTimestamp()+"获取板卡物理参数如下:");
-
-        ui->logPlainTextEdit->appendPlainText("工作模式: " + QString::number(phyPara->workMode));
-
-        qDebug() << "phyPara->batPercent:"<<phyPara->batPercent;
-        //限定电压的最大最小值，大于最大值
-        if(phyPara->batVol>12.48f)
-        {
-            phyPara->batPercent=100;
-        }else if(phyPara->batVol<10.74f)
-        {
-            phyPara->batPercent=0;
-        }
-
-        ui->logPlainTextEdit->appendPlainText("电池百分比: " + QString::number(phyPara->batPercent) + " %");
-        ui->logPlainTextEdit->appendPlainText("电池电压: " + QString::number(phyPara->batVol, 'f', 2) + " V");
-        ui->logPlainTextEdit->appendPlainText("板卡温度: " + QString::number(phyPara->temperature, 'f', 2) + " °C");
-        ui->logPlainTextEdit->appendPlainText("电池电压 (hex): " + QString::number(*reinterpret_cast<uint32_t*>(&phyPara->batVol), 16));
-        ui->logPlainTextEdit->appendPlainText("板卡温度 (hex): " + QString::number(*reinterpret_cast<uint32_t*>(&phyPara->temperature), 16));
-
-        //将物理参数显示在对应的文本框
-        ui->BatVolLineEdit->setText(QString::number(phyPara->batVol, 'f', 2) + " V");//显示电池电压
-        if((float)(phyPara->batPercent)<=configManager->readFromJson("VolThreshold"))
-        {
-            ui->BatPercentLineEdit->setText(QString::number(phyPara->batPercent) + " %");//显示电池百分比，并显示报警文字
-            ui->batStateLitLabel->setPixmap(redLit.scaled(60,60));
-        }
-        else
-        {
-            ui->BatPercentLineEdit->setText(QString::number(phyPara->batPercent) + " %");//显示电池百分比
-            ui->batStateLitLabel->setPixmap(greenLit.scaled(60,60));
-        }
-        //功耗限制在16.2w
-        if(16.2<=(phyPara->current)*(phyPara->batVol))
-        {
-            phyPara->current=16.2/phyPara->batVol;
-        }
-        ui->CurrentLineEdit->setText(QString::number(phyPara->current, 'f', 2) + " A");//显示板卡电流
-        ui->TemperLineEdit->setText(QString::number(phyPara->temperature, 'f', 2) + " °C");//显示板卡温度
-        ui->logPlainTextEdit->appendPlainText("板卡电流: " + QString::number(phyPara->current, 'f', 2) + " A");
-        ui->normalModeBtn->setCheckable(true);
-        ui->lowPowerModeBtn->setCheckable(true);
-
-        if(NORMAL_MODE==phyPara->workMode||DATA_CONLLECT_START_MODE==phyPara->workMode)
-        {
-            timer.setInterval((int)(1000*configManager->readFromJson("NormalMessFreq")));//重新设置自动获取参数间隔
-            ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//设备状态指示灯变为绿色
-            ui->normalModeBtn->setChecked(true);
-            ui->lowPowerModeBtn->setChecked(false);
-            devStateSet=NORMAL_MODE;
-        }
-        else if(LOW_POWER_MODE==phyPara->workMode)
-        {
-            timer.setInterval((int)(1000*configManager->readFromJson("LowPowMessFreq")));//重新设置自动获取参数间隔
-            ui->devStateLitLabel->setPixmap(yellowLit.scaled(60,60));//设备状态指示灯变为黄色
-            ui->normalModeBtn->setChecked(false);
-            ui->lowPowerModeBtn->setChecked(true);
-            devStateSet=LOW_POWER_MODE;
-        }
-
-        if(!timer_on_flag&&!timer_stop_flag)
-        {
-            qDebug()<<"timer_on_flag"<<timer_on_flag;
-            setGetDevInfoFreq();//开启定时器，定时获取设备参数
-            timer_on_flag=true;
-        }
-
-    }
-
-}
-
-void Widget::parseOtherResponse(QByteArray response, satelliteInfo *satInfo)
-{
-    if(response.size()< static_cast<int>(sizeof(satelliteInfo)))
-    {
-        QMessageBox::information(this,"警告","下位机响应回复卫星信息数据包长度有误!");
-        return;
-    }
-    else
-    {
-        memcpy(satInfo,response.constData(),sizeof(satelliteInfo));
-
-
-        ui->logPlainTextEdit->appendPlainText(getTimestamp()+"获取卫星信息如下:");
-
-        ui->logPlainTextEdit->appendPlainText("经度: " + QString::number(satInfo->longitude, 'f', 6));
-        ui->logPlainTextEdit->appendPlainText("纬度: " + QString::number(satInfo->latitude, 'f', 6));
-        ui->logPlainTextEdit->appendPlainText("椭球高: " + QString::number(satInfo->ellipsoidHeight, 'f', 2) + " m");
-        ui->logPlainTextEdit->appendPlainText("高程差: " + QString::number(satInfo->diffHeight, 'f', 2) + " m");
-        ui->logPlainTextEdit->appendPlainText("水平偏北方向: " + QString::number(satInfo->horiNorthDire, 'f', 2) + " °");
-        ui->logPlainTextEdit->appendPlainText("垂直俯仰方向: " + QString::number(satInfo->vertiPitchDire, 'f', 2) + " °");
-        ui->logPlainTextEdit->appendPlainText("天线距离: " + QString::number(satInfo->antennaDistance, 'f', 2) + " m");
-        ui->logPlainTextEdit->appendPlainText("位置类型: " + QString::number(satInfo->positionType));
-        ui->logPlainTextEdit->appendPlainText("GNSS质量指标: " + QString::number(satInfo->GNSS_QualIndicator));
-    }
-}
-
-void Widget::parseOtherResponse(QByteArray response, devState *devSta)
-{
-    if(response.size()< static_cast<int>(sizeof(devState)))
-    {
-        QMessageBox::information(this,"警告","下位机响应回复设备状态数据包长度有误!");
-        return;
-    }
-    else
-    {
-        memcpy(devSta,response.constData(),sizeof(devState));
-        ui->logPlainTextEdit->appendPlainText(getTimestamp()+"获取设备状态信息如下:");
-
-        ui->logPlainTextEdit->appendPlainText("采集状态: " + QString::number(devSta->collectionState));
-        ui->logPlainTextEdit->appendPlainText("对时状态: " + QString::number(devSta->timeState));
-        ui->logPlainTextEdit->appendPlainText("卫星状态: " + QString::number(devSta->satelliteState));
-        ui->logPlainTextEdit->appendPlainText("预留字: " + QString::number(devSta->reserveWord));
-        ui->logPlainTextEdit->appendPlainText("总存储空间: " + QString::number(devSta->totalSpace) + " B");
-        ui->logPlainTextEdit->appendPlainText("可用存储空间: " + QString::number(devSta->freeSpace) + " B");
-        ui->logPlainTextEdit->appendPlainText("电池电压: " + QString::number(devSta->batVol, 'f', 2) + " V");
-        ui->logPlainTextEdit->appendPlainText("板卡温度: " + QString::number(devSta->temperature, 'f', 2) + " °C");
-    }
-}
-
-void Widget::parseOtherResponse(QByteArray response, softwareVersion *softVer)
-{
-    if(response.size()< static_cast<int>(sizeof(devPhysicsParameter)))
-    {
-        QMessageBox::information(this,"警告","下位机响应回复软件版本数据包长度有误!");
-        return;
-    }
-    else
-    {
-        memcpy(softVer,response.constData(),sizeof(softwareVersion));
-
-        QString versionStr = QString("%1.%2.%3.%4")
-                                 .arg(softVer->w1)
-                                 .arg(softVer->w2)
-                                 .arg(softVer->w3)
-                                 .arg(softVer->w4);
-        ui->logPlainTextEdit->appendPlainText(getTimestamp()+"软件版本: " + versionStr);
-    }
-}
-
-void Widget::parseOtherResponse(QByteArray response, devWorkParameter *devWorkParam)
-{
-    if (response.size() < static_cast<int>(sizeof(devWorkParameter))) {
-        QMessageBox::information(this, "警告", "下位机响应回复设备工作参数数据包长度有误!");
-        return;
-    } else {
-        memcpy(devWorkParam, response.constData(), sizeof(devWorkParameter));
-        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "获取设备工作参数如下:");
-
-        ui->logPlainTextEdit->appendPlainText("采样频率: " + QString::number(devWorkParam->sampleFreq) + " Hz");
-        ui->logPlainTextEdit->appendPlainText("卫星类型: " + QString::number(devWorkParam->sateType));
-
-        // 打印通道量程类型
-        ui->logPlainTextEdit->appendPlainText("通道量程类型:");
-        ui->logPlainTextEdit->appendPlainText("  通道0: " + QString::number(devWorkParam->rangeTypeChannel0));
-        ui->logPlainTextEdit->appendPlainText("  通道1: " + QString::number(devWorkParam->rangeTypeChannel1));
-        ui->logPlainTextEdit->appendPlainText("  通道2: " + QString::number(devWorkParam->rangeTypeChannel2));
-        ui->logPlainTextEdit->appendPlainText("  通道3: " + QString::number(devWorkParam->rangeTypeChannel3));
-        ui->logPlainTextEdit->appendPlainText("  通道4: " + QString::number(devWorkParam->rangeTypeChannel4));
-        ui->logPlainTextEdit->appendPlainText("  通道5: " + QString::number(devWorkParam->rangeTypeChannel5));
-        ui->logPlainTextEdit->appendPlainText("  通道6: " + QString::number(devWorkParam->rangeTypeChannel6));
-        ui->logPlainTextEdit->appendPlainText("  通道7: " + QString::number(devWorkParam->rangeTypeChannel7));
-
-        // 打印通道信号类型
-        ui->logPlainTextEdit->appendPlainText("通道信号类型:");
-        ui->logPlainTextEdit->appendPlainText("  通道0: " + QString::number(devWorkParam->signalTypeChannel0));
-        ui->logPlainTextEdit->appendPlainText("  通道1: " + QString::number(devWorkParam->signalTypeChannel1));
-        ui->logPlainTextEdit->appendPlainText("  通道2: " + QString::number(devWorkParam->signalTypeChannel2));
-        ui->logPlainTextEdit->appendPlainText("  通道3: " + QString::number(devWorkParam->signalTypeChannel3));
-        ui->logPlainTextEdit->appendPlainText("  通道4: " + QString::number(devWorkParam->signalTypeChannel4));
-        ui->logPlainTextEdit->appendPlainText("  通道5: " + QString::number(devWorkParam->signalTypeChannel5));
-        ui->logPlainTextEdit->appendPlainText("  通道6: " + QString::number(devWorkParam->signalTypeChannel6));
-        ui->logPlainTextEdit->appendPlainText("  通道7: " + QString::number(devWorkParam->signalTypeChannel7));
-    }
-}
-
 void Widget::on_sendBtn_clicked()
 {
-    if(socket->state()==QAbstractSocket::UnconnectedState)
-    {
-        qDebug()<<"sendBtn";
+    qDebug()<<"sendBtn";
+    QString sendText = ui->sendTextEdit->toPlainText().remove(' ');
+
+    uint8_t result=networkManager->sendCmdToHost(sendText);
+
+    switch (result) {
+    case 0:
+        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "成功发送: " + sendText);
+        if(TCP_SEND_GET_PHY_PARAMETER==networkManager->sendCmdFlag)
+        {
+            ui->logPlainTextEdit->appendPlainText(getTimestamp() + "正在获取设备物理参数...");
+        }
+        break;
+
+    case 1:
         QMessageBox::information(this,"错误","未连接单片机");
-    }
-    else
-    {
-        QString sendText = ui->sendTextEdit->toPlainText().remove(' ');
-
-        //判断要发送的字符串是否非法
-        if(1==isStringInvalid(sendText))
-        {
-            return;
-        }
-
-        // 提取第一个字节作为命令
-        QString cmdHeaderStr = sendText.left(2);
-        bool ok;
-        uint8_t cmdHeader = cmdHeaderStr.toUInt(&ok, 16);
-        if (!ok)
-        {
-            QMessageBox::information(this, "错误", "无法解析命令，请检查输入！");
-            return;
-        }
-
-        //判断发送命令对应的TCP类型
-        sendCmdFlag=CmdTcpType(cmdHeader);
-        if(TCP_UNANSWER_STATE==sendCmdFlag)
-        {
-            return;
-        }
-
-        // 构建数据包
-        QByteArray packet;
-        packet.append(buildCmdPktHeader((CommandWord)cmdHeader,devID)); // 使用提取的命令头
-
-        // 将剩余的十六进制字符串转换为字节数组
-        QByteArray dataBytes;
-        for (int i = 2; i < sendText.size(); i += 2)
-        {
-            QString byteStr = sendText.mid(i, 2);
-            bool ok;
-            uint8_t byteValue = byteStr.toUInt(&ok, 16);
-            if (ok)
-            {
-                dataBytes.append(byteValue);
-            }
-            else
-            {
-                QMessageBox::information(this, "错误", "无法解析部分十六进制数据，请检查输入！");
-                return;
-            }
-        }
-
-        uint32_t totalLength = CMD_HEADER_LENGTH + dataBytes.size(); // 包总长度（包头4字节 + 数据N字节）
-        packet.append(reinterpret_cast<char*>(&totalLength), 4);
-        packet.append(dataBytes);
-
-        // 将数据通过 TCP 发出
-        qint64 bytesWritten = socket->write(packet);
-
-        if (bytesWritten == -1)
-        {
-            ui->logPlainTextEdit->appendPlainText(getTimestamp() + "发送失败: " + socket->errorString());
-        }
-        else
-        {
-            ui->logPlainTextEdit->appendPlainText(getTimestamp() + "成功发送: " + sendText);
-        }
-    }
-}
-
-//判断字符串是否非法
-bool Widget::isStringInvalid(QString sendText)
-{
-    if(sendText.isEmpty())
-    {
-        QMessageBox::information(this,"提示","发送区为空，请输入内容！");
-        return true;
-    }
-
-    // 检查输入是否为合法的十六进制字符串
-    bool isValidHex = true;
-    for (int i = 0; i < sendText.size(); ++i)
-    {
-        if (!sendText.at(i).isDigit() && !sendText.at(i).isLetter() ||
-            (sendText.at(i).toUpper() > 'F' && sendText.at(i).toUpper() < 'A'))
-        {
-            isValidHex = false;
-            break;
-        }
-    }
-
-    if (!isValidHex || sendText.size() % 2 != 0)
-    {
+        break;
+    case 2:
         QMessageBox::information(this, "错误", "请输入有效的十六进制字符串（偶数长度）！");
-        return true;
-    }
+        break;
 
-    return false;
+    case 3:
+        QMessageBox::information(this, "错误", "命令的内容由Qstring转换成uint8_t类型失败，请检查输入！");
+        break;
+    case 4:
+        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "发送失败: " + networkManager->socket->errorString());
+        break;
+
+    case -1:
+        QMessageBox::information(this,"警告","不支持手动发送命令设置工作模式, 请使用模式按键!");
+        break;
+
+    case -2:
+        QMessageBox::information(this,"错误","发送的命令不在命令集之中,请检查输入！");
+        break;
+
+    default:
+        break;
+    }
 }
+
+
 
 //获取当前时间戳用于日志打印,格式"yyyy-MM-dd HH:mm:ss"
-QString getTimestamp()
+QString Widget::getTimestamp()
 {
     QString timestamp= QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss");
     timestamp.append("|| ");
     return timestamp;
 }
 
-//判断发送的命令是否是命令集中的数据
-//TODO：可以在case分支中增加判断发送数据合法性的代码，需要额外增加
-TcpSendCmdType Widget::CmdTcpType(uint8_t cmdHeader)
-{
-    switch (cmdHeader)
-    {
-    case TCP_SEND_SET_DEV_WORKMODE:
-        QMessageBox::information(this,"警告","不支持发送命令设置工作模式, 请使用模式按键!");
-//        changeWorkModeFlag = true;
-//        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "正在发送设置设备工作模式命令...");
-        return TCP_UNANSWER_STATE;//TODO:返回值后续可能会更改
-
-    case TCP_SEND_SET_FACTORY_IP:
-        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "正在发送设置出厂ip命令...");
-        return TCP_SEND_DEFAULT_STATE;
-
-    case TCP_SEND_FACTORY_CALIBRATION:
-        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "正在发送设置出厂校准命令...");
-        return TCP_SEND_DEFAULT_STATE;
-
-    case TCP_SEND_DATA_COLLECTION:
-        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "正在发送采集命令...");
-        return TCP_SEND_DEFAULT_STATE;
-
-    case TCP_SEND_SET_WORK_PARAMETER:
-        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "正在发送设置设备工作参数命令...");
-        return TCP_SEND_DEFAULT_STATE;
-
-    case TCP_SEND_NETWORK_TIME_SYNC:
-        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "正在发送网络时间同步命令...");
-        return TCP_SEND_DEFAULT_STATE;
-
-    case TCP_SEND_FORCE_UPDATE_POSITION:
-        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "正在发送强制更新位置命令...");
-        return TCP_SEND_DEFAULT_STATE;
-
-    case TCP_SEND_GET_PHY_PARAMETER:
-        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "正在发送获取设备物理参数命令...");
-        return TCP_SEND_GET_PHY_PARAMETER;
-
-    case TCP_SEND_GET_WORK_PARAMETER:
-        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "正在发送获取设备工作参数命令...");
-        return TCP_SEND_GET_WORK_PARAMETER;
-
-    case TCP_SEND_GET_SATELLITE_INFO:
-        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "正在发送获取卫星信息命令...");
-        return TCP_SEND_GET_SATELLITE_INFO;
-
-    case TCP_SEND_GET_DEVICE_STATUS:
-        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "正在发送获取设备状态信息命令...");
-        return TCP_SEND_GET_DEVICE_STATUS;
-
-    case TCP_SEND_EXCHANGE_SOFTWARE_VERSION:
-        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "正在发送双向发送软件版本命令...");
-        return TCP_SEND_EXCHANGE_SOFTWARE_VERSION;
-
-    case TCP_SEND_REPORT_COLLECTION_DATA:
-        //ui->logPlainTextEdit->appendPlainText(getTimestamp() + "正在发送上报采集数据命令...");
-        QMessageBox::information(this, "抱歉", "该命令的功能尚未实现!请使用其他命令尝试");
-        return TCP_UNANSWER_STATE;//TODO:返回值需要修改
-
-    default:
-        QMessageBox::information(this,"错误","发送的命令不在命令集之中,请检查输入！");
-        return TCP_UNANSWER_STATE;
-    }
-}
-
-//去除收到的数据包的包头,只留下数据部分
-QByteArray removeCmdPktHeader(QByteArray response,CmdPacketHeader *header)
-{
-    QByteArray headerBytes = response.left(12);
-    memcpy(header, headerBytes.constData(), sizeof(CmdPacketHeader));
-    response = response.mid(12);
-
-    return response;
-}
 
 //“获取设备物理参数信息”命令按钮槽函数
 void Widget::on_getDevPhyParaBtn_clicked()
 {
     ui->sendTextEdit->clear();
     ui->sendTextEdit->setText("ca ff");
-}
-
-//“获取设备卫星信息”命令按钮槽函数
-void Widget::on_getSateInfoBtn_clicked()
-{
-    ui->sendTextEdit->clear();
-    ui->sendTextEdit->setText("c6 ff");
-}
-
-//“查询设备状态命令”按钮槽函数
-void Widget::on_getDevStateBtn_clicked()
-{
-    ui->sendTextEdit->clear();
-    ui->sendTextEdit->setText("c7 ff");
-}
-
-//发送“查询设备工作参数”命令按钮槽函数
-void Widget::on_getDevWorkParaBtn_clicked()
-{
-    ui->sendTextEdit->clear();
-    ui->sendTextEdit->setText("c5 ff");
-}
-
-//发送“强制更新位置”命令按钮槽函数
-void Widget::on_forceUpdateLocBtn_clicked()
-{
-    ui->sendTextEdit->clear();
-    ui->sendTextEdit->setText("c9 ff");
 }
 
 //切换自定义命令页面槽函数
@@ -910,7 +450,228 @@ void Widget::clearSelfDfnCmdBtn_clicked()
 
 }
 
+//下位机连接成功处理槽函数
+void Widget::HostConnecttedHandler(qint64 bytesWritten)
+{
+    ui->netStateLitLabel ->setPixmap(greenLit.scaled(60,60));//网络指示灯为黄色常亮,表示连接
+    //TODO:掩码需要可以自定义,此处实现需要修改
+    ui->MaskLineEdit->setText(networkManager->mask);//在掩码位置显示掩码
+    //在日志栏打印信息
+    QString logText=getTimestamp();
+    logText.append("下位机连接成功!------>["+ui->IPLineEdit->text()+":"+ui->PortLineEdit->text()+"]");
+    ui->logPlainTextEdit->appendPlainText(logText);
+    if (bytesWritten == -1)
+    {
+        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "获取设备初始物理参数失败：" + networkManager->socket->errorString());
+        networkManager->sendCmdFlag=TCP_UNANSWER_STATE;
+    }
+    else
+    {
+        networkManager->sendCmdFlag=TCP_SEND_GET_PHY_PARAMETER;
+        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "获取设备初始物理参数成功！" );
+    }
 
+
+}
+
+//下位机断开连接处理槽函数
+void Widget::HostDisconnecttedHandler()
+{
+    ui->normalModeBtn->setChecked(false);
+    ui->lowPowerModeBtn->setChecked(false);
+    ui->normalModeBtn->setCheckable(false);
+    ui->lowPowerModeBtn->setCheckable(false);
+    ui->netStateLitLabel ->setPixmap(greyLit.scaled(60,60));//设置网络状态指示灯为灰色,表示断开连接
+    ui->devStateLitLabel ->setPixmap(greyLit.scaled(60,60));//设置设备状态指示灯为灰色,表示断开连接
+    ui->batStateLitLabel ->setPixmap(greyLit.scaled(60,60));//设置电池状态指示灯为灰色,表示断开连接
+
+    timer.stop();
+    timer_on_flag=false;
+    timer_stop_flag=false;
+    //TODO:下位机断开连接，相关的标志量要全部清空
+
+    ui->BatPercentLineEdit->clear();
+    ui->BatVolLineEdit->clear();
+    ui->CurrentLineEdit->clear();
+    ui->TemperLineEdit->clear();
+
+    //打印日志
+    QString logText=getTimestamp();
+    logText.append("下位机连接断开!--\\\\-->["+ui->IPLineEdit->text()+":"+ui->PortLineEdit->text()+"]");
+    ui->logPlainTextEdit->appendPlainText(logText);
+}
+
+//下位机连接错误槽函数
+void Widget::HostConnectErrorHandler()
+{
+    QMessageBox::information(this,"警告","TCP连接错误!");
+    // 获取错误描述
+    QString errorDescription = networkManager->socket->errorString();
+    ui->logPlainTextEdit->appendPlainText(getTimestamp()+"socketError:"+errorDescription);
+}
+
+
+void Widget::TcpHexResponseHandler(QByteArray response)
+{
+    //将获取的响应直接在log中打印出来(hex形式)
+    QString hexResponse=networkManager->hexToFormatStr(response);
+    ui->logPlainTextEdit->appendPlainText(getTimestamp()+"接收到原始数据\n(Hex:"+hexResponse+")");
+    if(TCP_UNANSWER_STATE==networkManager->sendCmdFlag)
+    {
+        //FIXME:下位机多次上报有时会出现在TCP_UNANSWER_STATE下响应，需要确认自动获取参数时的sendCmdFlag置位操作
+//        QMessageBox::information(this,"警告","下位机在无TCP请求时进行了响应\n请确认下位机是否正常工作!");
+        ui->logPlainTextEdit->appendPlainText(getTimestamp()+"下位机在无TCP请求时进行了响应\n请确认下位机是否正常工作!");
+        return;
+    }
+}
+
+//工作模式设置响应处理槽函数
+void Widget::WorkmodeSetResponseHandler(QByteArray response)
+{
+    uint8_t tcpRespond = static_cast<uint8_t>(response.at(0));
+    networkManager->sendCmdFlag= TCP_UNANSWER_STATE;
+    QString logText = getTimestamp();
+
+    switch (tcpRespond) {
+    case 0:
+        logText += "设置成功!";
+        if(NORMAL_MODE==devStateSet)//正常工作模式设置成功
+        {
+            //与工作模式切换相关的ui变化只有在确定发出来工作模式切换请求的情况下(标志量为真)才进行
+            if(true==changeWorkModeFlag)
+            {
+                ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//设备状态指示灯变为绿色
+                ui->normalModeBtn->setChecked(true);
+                ui->lowPowerModeBtn->setChecked(false);
+                changeWorkModeFlag=false;
+            }
+        }else if(LOW_POWER_MODE==devStateSet)//低功耗模式设置成功
+        {
+            if(true==changeWorkModeFlag)
+            {
+                ui->devStateLitLabel->setPixmap(yellowLit.scaled(60,60));//设备状态指示灯变为黄色
+                ui->normalModeBtn->setChecked(false);
+                ui->lowPowerModeBtn->setChecked(true);
+                changeWorkModeFlag=false;
+            }
+        }
+
+        break;
+    case 1:
+        logText += "设置失败!";
+
+        if(NORMAL_MODE==devStateSet)//正常模式设置失败
+        {
+            if(true==changeWorkModeFlag)
+            {
+                ui->devStateLitLabel->setPixmap(yellowLit.scaled(60,60));//设备状态指示灯变为黄色
+                ui->normalModeBtn->setChecked(false);
+                ui->lowPowerModeBtn->setChecked(true);
+                changeWorkModeFlag=false;
+                devStateSet=LOW_POWER_MODE;
+            }
+        }
+        else if(LOW_POWER_MODE==devStateSet)//低功耗模式设置失败
+        {
+            if(true==changeWorkModeFlag)
+            {
+                ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//设备状态指示灯变为绿色
+                ui->normalModeBtn->setChecked(true);
+                ui->lowPowerModeBtn->setChecked(false);
+                changeWorkModeFlag=false;
+                devStateSet=NORMAL_MODE;
+            }
+        }
+        //TODO:设备状态设置成功时,状态可知,可是没有一个参数用来表示设备当前的工作状态
+        break;
+
+    default:
+        logText += "未知响应!";
+        break;
+    }
+
+    QString hexResponse=response.toHex();
+    logText.append("(Hex:"+hexResponse+")");
+
+    ui->logPlainTextEdit->appendPlainText(logText); // 记录日志
+}
+
+//设备物理参数响应处理槽函数,实现接收数据包解析,将结构体指针与数据包对齐
+void Widget::PhyParamResponseHandler(QByteArray response,  devPhysicsParameter *phyPara)
+{
+    qDebug()<< "get phy param response sendcmdflag:"<<networkManager->sendCmdFlag;
+    networkManager->sendCmdFlag = TCP_UNANSWER_STATE;
+    if(response.size()< static_cast<int>(sizeof(devPhysicsParameter)))
+    {
+        ui->logPlainTextEdit->appendPlainText(getTimestamp()+"下位机响应回复物理参数数据包长度有误!");
+//        QMessageBox::information(this,"警告","下位机响应回复物理参数数据包长度有误!");
+        return;
+    }
+    else
+    {
+
+        qDebug() << "Size of devPhysicsParameter:" << sizeof(devPhysicsParameter);
+        memcpy(phyPara,response.constData(),sizeof(devPhysicsParameter));
+
+        //日志区打印设备物理参数
+        ui->logPlainTextEdit->appendPlainText(getTimestamp()+"获取板卡物理参数如下:");
+
+        ui->logPlainTextEdit->appendPlainText("工作模式: " + QString::number(phyPara->workMode));
+
+        qDebug() << "phyPara->batPercent:"<<phyPara->batPercent;
+
+
+        ui->logPlainTextEdit->appendPlainText("电池百分比: " + QString::number(phyPara->batPercent) + " %");
+        ui->logPlainTextEdit->appendPlainText("电池电压: " + QString::number(phyPara->batVol, 'f', 2) + " V");
+        ui->logPlainTextEdit->appendPlainText("板卡温度: " + QString::number(phyPara->temperature, 'f', 2) + " °C");
+        ui->logPlainTextEdit->appendPlainText("电池电压 (hex): " + QString::number(*reinterpret_cast<uint32_t*>(&phyPara->batVol), 16));
+        ui->logPlainTextEdit->appendPlainText("板卡温度 (hex): " + QString::number(*reinterpret_cast<uint32_t*>(&phyPara->temperature), 16));
+
+        //将物理参数显示在对应的文本框
+        ui->BatVolLineEdit->setText(QString::number(phyPara->batVol, 'f', 2) + " V");//显示电池电压
+        if((float)(phyPara->batPercent)<=configManager->readFromJson("VolThreshold"))
+        {
+            ui->BatPercentLineEdit->setText(QString::number(phyPara->batPercent) + " %");//显示电池百分比，并显示报警文字
+            ui->batStateLitLabel->setPixmap(redLit.scaled(60,60));
+        }
+        else
+        {
+            ui->BatPercentLineEdit->setText(QString::number(phyPara->batPercent) + " %");//显示电池百分比
+            ui->batStateLitLabel->setPixmap(greenLit.scaled(60,60));
+        }
+
+        ui->CurrentLineEdit->setText(QString::number(phyPara->current, 'f', 2) + " A");//显示板卡电流
+        ui->TemperLineEdit->setText(QString::number(phyPara->temperature, 'f', 2) + " °C");//显示板卡温度
+        ui->logPlainTextEdit->appendPlainText("板卡电流: " + QString::number(phyPara->current, 'f', 2) + " A");
+        ui->normalModeBtn->setCheckable(true);
+        ui->lowPowerModeBtn->setCheckable(true);
+
+        if(NORMAL_MODE==phyPara->workMode)
+        {
+            timer.setInterval((int)(1000*configManager->readFromJson("NormalMessFreq")));//重新设置自动获取参数间隔
+            ui->devStateLitLabel->setPixmap(greenLit.scaled(60,60));//设备状态指示灯变为绿色
+            ui->normalModeBtn->setChecked(true);
+            ui->lowPowerModeBtn->setChecked(false);
+            devStateSet=NORMAL_MODE;
+        }
+        else if(LOW_POWER_MODE==phyPara->workMode)
+        {
+            timer.setInterval((int)(1000*configManager->readFromJson("LowPowMessFreq")));//重新设置自动获取参数间隔
+            ui->devStateLitLabel->setPixmap(yellowLit.scaled(60,60));//设备状态指示灯变为黄色
+            ui->normalModeBtn->setChecked(false);
+            ui->lowPowerModeBtn->setChecked(true);
+            devStateSet=LOW_POWER_MODE;
+        }
+
+        if(!timer_on_flag&&!timer_stop_flag)
+        {
+            qDebug()<<"timer_on_flag"<<timer_on_flag;
+            setGetDevInfoFreq();//开启定时器，定时获取设备参数
+            timer_on_flag=true;
+        }
+
+    }
+}
 
 /**
  * @brief：设置电压阈值按钮槽函数
@@ -921,11 +682,11 @@ void Widget::on_setVolThresholdBtn_clicked()
 {
     // 获取 QLineEdit 中的数据
     QString data = ui->setVolThresholdBtnLineEdit->text();
-    float currentData=phyPara.batPercent;
+    float currentData=networkManager->phyPara.batPercent;
     qDebug()<<"data:"<<data<<"\ncurrentData:"<<currentData;
     configManager->saveToJson("VolThreshold", data);
     //WARNING：未判断toFloat是否成功
-    if(QAbstractSocket::ConnectedState==socket->state())
+    if(QAbstractSocket::ConnectedState==networkManager->socket->state())
     {
 
         if(currentData<=(data.toFloat()))//当前电量小于阈值
@@ -997,19 +758,21 @@ void Widget::get_devPhyParam_timeout()
 {
     //通过tcp发送获取信息命令即可
     QByteArray packet;
-    packet.append(buildCmdPktHeader(CMD_GET_DEV_PHY_PARAMETERS,devID));
+    packet.append(networkManager->buildCmdPktHeader(CMD_GET_DEV_PHY_PARAMETERS));
     // 包总长度（4字节，包头12B + 数据1B = 13 → 0x0D）
     uint32_t totalLength = 13;
     packet.append(reinterpret_cast<char*>(&totalLength), 4);
     // 数据内容（1字节）
     packet.append(0xff);
-    qDebug()<<"packet:"<<hexToFormatStr(packet);
-    qint64 bytesWritten =socket->write(packet);
-    sendCmdFlag=TCP_SEND_GET_PHY_PARAMETER;
+    qDebug()<<"packet:"<<networkManager->hexToFormatStr(packet);
+    qint64 bytesWritten =networkManager->socket->write(packet);
+    networkManager->sendCmdFlag=TCP_SEND_GET_PHY_PARAMETER;
+
+
     if (bytesWritten == -1)
     {
-        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "自动获取设备物理参数失败：" + socket->errorString());
-        sendCmdFlag=TCP_UNANSWER_STATE;
+        ui->logPlainTextEdit->appendPlainText(getTimestamp() + "自动获取设备物理参数失败：" + networkManager->socket->errorString());
+        networkManager->sendCmdFlag=TCP_UNANSWER_STATE;
     }
     else
     {
