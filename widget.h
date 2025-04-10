@@ -51,8 +51,7 @@ private:
     bool timer_on_flag=false;
     bool timer_stop_flag=false;
 
-    //TODO:设备模式从设备获取更安全,设备出现故障一上电就是低功耗模式,那么这个预设就是有问题的
-    WorkMode devStateSet=UNKNOWN_MODE;//设备上电是正常工作模式
+    WorkMode devStateSet=UNKNOWN_MODE;//设备上电是未知模式
     bool changeWorkModeFlag=false;
 
     //定时获取设备状态信息的定时器

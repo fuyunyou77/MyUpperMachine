@@ -180,7 +180,6 @@ QByteArray NetworkManager::buildCmdPktHeader(CommandWord cmd) {
     packetHeader.append(static_cast<uint8_t>(cmd));
 
     // 设备ID（固定值0xFF，1字节）
-    //TODO:后续设备应该为设备IP的后2位
     packetHeader.append(0xff);
 
     // 当前时间戳(4字节)

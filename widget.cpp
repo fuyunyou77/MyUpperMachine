@@ -65,6 +65,7 @@ Widget::~Widget()
  */
 void Widget::uiInit()
 {
+    qDebug()<<__FILE__<<__LINE__<<__func__;
     greyLit.load(":/icon/grey_light.png");
     greenLit.load(":/icon/green_light.png");
     yellowLit.load(":/icon/yellow_light.png");
@@ -252,8 +253,6 @@ void Widget::on_connectBtn_clicked()
     QString IP = ui->IPLineEdit->text();
     QString port = ui->PortLineEdit->text();
     QString recvMask=ui->MaskLineEdit->text();
-//    QString recvID=ui->devIDLineEdit->text();
-    QString recvID="255";
 
     if(QAbstractSocket::ConnectedState==networkManager->socket->state())
     {
@@ -305,7 +304,7 @@ void Widget::on_connectBtn_clicked()
  *@retval：无
 */
 void Widget::on_disconnectBtn_clicked()
-{  
+{
     QAbstractSocket::SocketState state=networkManager->socket->state();
 
     if(QAbstractSocket::ConnectingState==state
@@ -582,7 +581,7 @@ void Widget::WorkmodeSetResponseHandler(QByteArray response)
                 devStateSet=NORMAL_MODE;
             }
         }
-        //TODO:设备状态设置成功时,状态可知,可是没有一个参数用来表示设备当前的工作状态
+
         break;
 
     default:
